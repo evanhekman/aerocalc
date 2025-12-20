@@ -5,6 +5,7 @@ class Equation:
         self.params = list(lhs.free_symbols) + list(rhs.free_symbols)
         self.equation = sp.Eq(lhs, rhs)
         self.transcendental = transcendental
+        self.solved = False
 
     def solve(self, params: dict[str, float]) -> float:
         unknown = []
@@ -23,3 +24,9 @@ class Equation:
         else:
             solution = sp.solve(self.equation, unknown_var)
             return solution[0].evalf(subs=params)
+
+    def solvable(self, known: list[sp.Basic]):
+        if self.transcendental:
+            raise NotImplementedError("Transcendental equations are not supported yet.")
+        shared = [p for p in known if p in self.params]
+        return len(shared) >= len(self.params) - 1

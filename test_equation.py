@@ -1,8 +1,7 @@
 import equation
 import sympy as sp
 
-p, v = sp.symbols('P V')
-r, t = sp.symbols('R T')
+p, v, r, t = sp.symbols('P V R T')
 pvrt = equation.Equation(p * v, r * t)
 
 while True:
