@@ -1,5 +1,7 @@
-NodeKey = str
-ConditionKey = str
+from typing import Set
+
+type NodeKey = str
+type ConditionKey = str
 
 
 class Edge:
@@ -7,9 +9,9 @@ class Edge:
         self,
         n1: NodeKey,
         n2: NodeKey,
-        req_all_nodes: set[NodeKey],
-        req_one_node: set[NodeKey],
-        conditions: set[ConditionKey],
+        req_all_nodes: Set[NodeKey],
+        req_one_node: Set[NodeKey],
+        conditions: Set[ConditionKey] = set([]),
     ):
         self.neighbor1 = n1
         self.neighbor2 = n2
@@ -31,9 +33,9 @@ class Edge:
 
 
 class Node:
-    def __init__(self, name: str, neighbors: list[tuple[Node, Edge]] = []):
+    def __init__(self, name: NodeKey):
         self.name = name
-        self.neighbors = neighbors
+        self.neighbors = []
 
 
 class Graph:
@@ -41,42 +43,47 @@ class Graph:
         self,
         nodes: dict[NodeKey, Node],
         edges: list[Edge],
-        conditions: set[ConditionKey] = set([]),
+        conditions: Set[ConditionKey] = set([]),
         validate: bool = True,
     ):
         self.all_nodes = nodes
         self.all_edges = edges
         self.conditions = conditions
         self.active_nodes = []
+        for edge in edges:
+            self.connect(edge)
+
         if validate:
             total_edges = sum([len(n.neighbors) for n in self.all_nodes.values()]) / 2
             assert total_edges == len(self.all_edges)
 
-    def set_active(self, nodes: set[Node]):
+    def set_active(self, nodes: Set[Node]):
         self.active_nodes = nodes
 
-    def connect(self, node1: Node, node2: Node, edge: Edge):
-        node1.neighbors.append((node2, edge))
-        node2.neighbors.append((node1, edge))
+    def connect(self, edge: Edge):
+        self.all_nodes[edge.neighbor1].neighbors.append((edge.neighbor2, edge))
+        self.all_nodes[edge.neighbor2].neighbors.append((edge.neighbor1, edge))
 
-    def _calculate_available(self, nodes: set[NodeKey]) -> set[NodeKey]:
+    def _calculate_available(self, nodes: Set[NodeKey]) -> Set[NodeKey]:
         next_nodes = nodes.copy()
-        for node in self.all_nodes:
+        for node in self.all_nodes.keys():
             if node not in nodes:
-                for neighbor, edge in self.all_nodes.[node].neighbors:
+                for neighbor, edge in self.all_nodes[node].neighbors:
                     if neighbor in nodes and edge.valid(self):
-                        next_nodes.add(node.name)
+                        next_nodes.add(node)
         return next_nodes
 
-    def calculate_available(self, nodes: set[NodeKey]) -> set[NodeKey]:
+    def calculate_available(self, nodes: Set[NodeKey]) -> Set[NodeKey]:
         current = nodes
+        # print("initializing")
         next = self._calculate_available(nodes)
         while len(next) > len(current):
+            # print("checking ", current)
             current = next
             next = self._calculate_available(current)
         return next
 
-    def valid_conditions(self, test_conditions: set[ConditionKey]) -> bool:
+    def valid_conditions(self, test_conditions: Set[ConditionKey]) -> bool:
         return all([c in self.conditions for c in test_conditions])
 
     def valid_node(self, node: NodeKey) -> bool:
@@ -86,9 +93,7 @@ class Graph:
 
 
 def build_graph(nodes: dict[str, Node], edges: list[Edge]) -> "Graph":
-    g = Graph(list(nodes.values()), [])
+    g = Graph(nodes, [])
     for edge in edges:
-        n1 = nodes[edge.neighbor1]
-        n2 = nodes[edge.neighbor2]
-        g.connect(n1, n2, edge)
+        g.connect(edge)
     return g
