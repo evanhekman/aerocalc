@@ -1,3 +1,4 @@
+from collections import deque
 from typing import Set
 
 type NodeKey = str
@@ -18,9 +19,14 @@ class Edge:
         self.req_all_nodes = req_all_nodes
         self.req_one_node = req_one_node
         self.conditions = conditions
+        self.valid_graphs = set()
 
     def valid(self, graph: "Graph") -> bool:
         # TODO: hash the graph to prevent recomputation
+        g_hash = hash(frozenset(graph.current_nodes))
+        if g_hash in self.valid_graphs:
+            return True
+
         if not graph.valid_conditions(self.conditions):
             return False
         for n in self.req_all_nodes:
@@ -29,8 +35,10 @@ class Edge:
         if len(self.req_one_node) > 0:
             for n in self.req_one_node:
                 if graph.valid_node(n):
+                    self.valid_graphs.add(g_hash)
                     return True
             return False
+        self.valid_graphs.add(g_hash)
         return True
 
     def __str__(self):
