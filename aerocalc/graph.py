@@ -26,16 +26,24 @@ class Edge:
         for n in self.req_all_nodes:
             if not graph.valid_node(n):
                 return False
-        for n in self.req_one_node:
-            if graph.valid_node(n):
-                return True
+        if len(self.req_one_node) > 0:
+            for n in self.req_one_node:
+                if graph.valid_node(n):
+                    return True
+            return False
         return True
+
+    def __str__(self):
+        return f"{self.neighbor1}->{self.neighbor2}"
 
 
 class Node:
     def __init__(self, name: NodeKey):
         self.name = name
         self.neighbors = []
+
+    def __str__(self):
+        return f"{self.name} with neighbors {[n[0] for n in self.neighbors]}"
 
 
 class Graph:
@@ -49,7 +57,7 @@ class Graph:
         self.all_nodes = nodes
         self.all_edges = edges
         self.conditions = conditions
-        self.active_nodes = []
+        self.current_nodes = []
         for edge in edges:
             self.connect(edge)
 
@@ -57,8 +65,8 @@ class Graph:
             total_edges = sum([len(n.neighbors) for n in self.all_nodes.values()]) / 2
             assert total_edges == len(self.all_edges)
 
-    def set_active(self, nodes: Set[Node]):
-        self.active_nodes = nodes
+    def set_active(self, nodes: Set[NodeKey]):
+        self.current_nodes = nodes
 
     def connect(self, edge: Edge):
         self.all_nodes[edge.neighbor1].neighbors.append((edge.neighbor2, edge))
@@ -74,20 +82,18 @@ class Graph:
         return next_nodes
 
     def calculate_available(self, nodes: Set[NodeKey]) -> Set[NodeKey]:
-        current = nodes
-        # print("initializing")
+        self.current_nodes = nodes
         next = self._calculate_available(nodes)
-        while len(next) > len(current):
-            # print("checking ", current)
-            current = next
-            next = self._calculate_available(current)
+        while len(next) > len(self.current_nodes):
+            self.current_nodes = next
+            next = self._calculate_available(self.current_nodes)
         return next
 
     def valid_conditions(self, test_conditions: Set[ConditionKey]) -> bool:
         return all([c in self.conditions for c in test_conditions])
 
     def valid_node(self, node: NodeKey) -> bool:
-        return node in self.active_nodes
+        return node in self.current_nodes
 
     def solve(self, node1: NodeKey, node2: NodeKey): ...
 
