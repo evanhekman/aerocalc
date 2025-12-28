@@ -59,10 +59,6 @@ NODES = {
 }
 
 
-def always_true(g: g.Graph):
-    return
-
-
 EDGES = [
     # PV=nRT
     g.Edge(P, V, set([n, R, T]), set([P, V])),
@@ -97,4 +93,6 @@ NODES_3 = set([P, V, T])
 #     print("starting with", NODES)
 #     print("can reach", GRAPH.calculate_available(NODES))
 
-print(GRAPH.solve_all(NODES_1, P, U))
+s = GRAPH.solve_all(NODES_1, P, U)
+print(s)
+print(len(s))

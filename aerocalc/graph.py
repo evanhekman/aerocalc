@@ -116,12 +116,12 @@ class Graph:
         # if it reaches node2, consider it a valid route
         # no cycles
 
-        current_routes = deque([[node1]])
+        current_routes = deque()
+        current_routes.append([list([node1]), set([node1])])
         valid_routes = []
-        discovered = set([node1])
 
         while len(current_routes) > 0:
-            route = current_routes.pop()
+            route, discovered = current_routes.pop()
             end_node = route[-1]
             for next_node, _ in self.all_nodes[end_node].neighbors:
                 r = copy.deepcopy(route)
@@ -129,8 +129,9 @@ class Graph:
                 if next_node == node2:
                     valid_routes.append(r)
                 elif next_node not in discovered:
-                    current_routes.append(r)
-                    discovered.add(next_node)
+                    d = copy.deepcopy(discovered)
+                    d.add(next_node)
+                    current_routes.append([r, d])
 
         return valid_routes
 
