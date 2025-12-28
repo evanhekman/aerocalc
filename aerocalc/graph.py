@@ -137,8 +137,10 @@ class Graph:
         return short_route_lists
 
 
-def build_graph(nodes: dict[str, Node], edges: list[Edge]) -> "Graph":
-    g = Graph(nodes, [])
+def build_graph(
+    nodes: dict[str, Node], edges: list[Edge], conditions: set[ConditionKey] = []
+) -> "Graph":
+    g = Graph(nodes, [], conditions=conditions)
     for edge in edges:
         g.connect(edge)
     return g
