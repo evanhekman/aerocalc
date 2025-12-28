@@ -23,8 +23,7 @@ class Edge:
         self.conditions = conditions
         self.valid_graphs = set()
 
-    def valid(self, graph: "Graph") -> bool:
-        # TODO: hash the graph to prevent recomputation
+    def valid(self, graph: "Graph", nodes: set["NodeKey"]) -> bool:
         g_hash = hash(frozenset(graph.current_nodes))
         if g_hash in self.valid_graphs:
             return True
@@ -32,11 +31,11 @@ class Edge:
         if not graph.valid_conditions(self.conditions):
             return False
         for n in self.req_all_nodes:
-            if not graph.valid_node(n):
+            if n not in nodes:
                 return False
         if len(self.req_one_node) > 0:
             for n in self.req_one_node:
-                if graph.valid_node(n):
+                if n in nodes:
                     self.valid_graphs.add(g_hash)
                     return True
             return False
@@ -83,11 +82,11 @@ class Graph:
         self.all_nodes[edge.neighbor2].neighbors.append((edge.neighbor1, edge))
 
     def _calculate_available(self, nodes: Set[NodeKey]) -> Set[NodeKey]:
-        next_nodes = nodes.copy()
+        next_nodes = copy.deepcopy(nodes)
         for node in self.all_nodes.keys():
             if node not in nodes:
                 for neighbor, edge in self.all_nodes[node].neighbors:
-                    if neighbor in nodes and edge.valid(self):
+                    if neighbor in nodes and edge.valid(self, nodes):
                         next_nodes.add(node)
         return next_nodes
 
@@ -102,14 +101,9 @@ class Graph:
     def valid_conditions(self, test_conditions: Set[ConditionKey]) -> bool:
         return all([c in self.conditions for c in test_conditions])
 
-    def valid_node(self, node: NodeKey) -> bool:
-        return node in self.current_nodes
-
     def solve_all(self, nodes: Set[NodeKey], node1: NodeKey, node2: NodeKey):
         before = nodes
         assert node1 in before
-        after = self.calculate_available(nodes)
-        assert node2 in after
 
         # start with node1
         # iteratively add routes for each node1.neighbor
@@ -123,7 +117,12 @@ class Graph:
         while len(current_routes) > 0:
             route, discovered = current_routes.pop()
             end_node = route[-1]
-            for next_node, _ in self.all_nodes[end_node].neighbors:
+            available = self._calculate_available(nodes | discovered)
+            for next_node, edge in self.all_nodes[end_node].neighbors:
+                if next_node not in available:
+                    continue
+                if not edge.valid(self, discovered):
+                    continue
                 r = copy.deepcopy(route)
                 r.append(next_node)
                 if next_node == node2:

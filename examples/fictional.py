@@ -25,7 +25,7 @@ EDGES = [
     g.Edge(B, D, set(), set()),
     g.Edge(B, E, set(), set()),
     g.Edge(C, D, set(), set()),
-    g.Edge(C, E, set(), set()),
+    g.Edge(C, E, set([B]), set()),
     g.Edge(D, F, set(), set()),
 ]
 
@@ -36,4 +36,13 @@ NODES = set(A)
 s = GRAPH.solve_all(NODES, A, F)
 print(s)
 print(len(s))
-assert len(s) == 7
+assert len(s) == 6
+
+# ADF
+# ABDF
+# ACDF
+# ABECDF
+# AEBDF
+# ACEBDF
+
+# *not* AECDF
