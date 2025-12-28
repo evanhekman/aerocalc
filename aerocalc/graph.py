@@ -132,7 +132,21 @@ class Graph:
                     d.add(next_node)
                     current_routes.append([r, d])
 
-        return valid_routes
+        valid_routes = sorted(valid_routes, key=lambda s: len(s))
+        short_routes = []
+        # TODO: make this preserve ordering without ruining time complexity
+        for r1_ in valid_routes:
+            r1 = set(r1_)
+            short = True
+            for r2_ in short_routes:
+                r2 = set(r2_)
+                if r2.issubset(r1):
+                    short = False
+                    break
+            if short:
+                short_routes.append(r1_)
+
+        return short_routes
 
 
 def build_graph(nodes: dict[str, Node], edges: list[Edge]) -> "Graph":

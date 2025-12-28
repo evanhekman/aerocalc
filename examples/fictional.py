@@ -35,14 +35,4 @@ NODES = set(A)
 
 s = GRAPH.solve_all(NODES, A, F)
 print(s)
-print(len(s))
-assert len(s) == 6
-
-# ADF
-# ABDF
-# ACDF
-# ABECDF
-# AEBDF
-# ACEBDF
-
-# *not* AECDF
+assert s[0] == [A, D, F]
