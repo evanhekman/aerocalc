@@ -41,3 +41,5 @@ class Graph:
             current = next
             next = self._calculate_available(current)
         return next
+
+    def solve(self, node1: Node, node2: Node): ...
