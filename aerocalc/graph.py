@@ -1,6 +1,5 @@
 import copy
 from collections import deque
-from dis import disco
 from typing import Set
 
 type NodeKey = str
@@ -133,20 +132,21 @@ class Graph:
                     current_routes.append([r, d])
 
         valid_routes = sorted(valid_routes, key=lambda s: len(s))
-        short_routes = []
+        short_route_sets = []
+        short_route_lists = []
         # TODO: make this preserve ordering without ruining time complexity
         for r1_ in valid_routes:
             r1 = set(r1_)
             short = True
-            for r2_ in short_routes:
-                r2 = set(r2_)
+            for r2 in short_route_sets:
                 if r2.issubset(r1):
                     short = False
                     break
             if short:
-                short_routes.append(r1_)
+                short_route_sets.append(r1)
+                short_route_lists.append(r1_)
 
-        return short_routes
+        return short_route_lists
 
 
 def build_graph(nodes: dict[str, Node], edges: list[Edge]) -> "Graph":

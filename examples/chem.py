@@ -95,4 +95,4 @@ NODES_3 = set([P, V, T])
 
 s = GRAPH.solve_all(NODES_1, P, U)
 print(s)
-print(len(s))
+assert s[0] == [P, R, U]
