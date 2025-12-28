@@ -27,8 +27,9 @@ class Edge:
         if g_hash in self.valid_graphs:
             return True
 
-        if not graph.valid_conditions(self.conditions):
-            return False
+        for c in self.conditions:
+            if c not in graph.conditions:
+                return False
         for n in self.req_all_nodes:
             if n not in nodes:
                 return False
@@ -73,9 +74,6 @@ class Graph:
             total_edges = sum([len(n.neighbors) for n in self.all_nodes.values()]) / 2
             assert total_edges == len(self.all_edges)
 
-    def set_active(self, nodes: Set[NodeKey]):
-        self.current_nodes = nodes
-
     def connect(self, edge: Edge):
         self.all_nodes[edge.neighbor1].neighbors.append((edge.neighbor2, edge))
         self.all_nodes[edge.neighbor2].neighbors.append((edge.neighbor1, edge))
@@ -97,17 +95,9 @@ class Graph:
             next_nodes = self._calculate_available(self.current_nodes)
         return next_nodes
 
-    def valid_conditions(self, test_conditions: Set[ConditionKey]) -> bool:
-        return all([c in self.conditions for c in test_conditions])
-
     def solve_all(self, nodes: Set[NodeKey], node1: NodeKey, node2: NodeKey):
         before = nodes
         assert node1 in before
-
-        # start with node1
-        # iteratively add routes for each node1.neighbor
-        # if it reaches node2, consider it a valid route
-        # no cycles
 
         current_routes = deque()
         current_routes.append([list([node1]), set([node1])])
@@ -118,9 +108,7 @@ class Graph:
             end_node = route[-1]
             available = self._calculate_available(nodes | discovered)
             for next_node, edge in self.all_nodes[end_node].neighbors:
-                if next_node not in available:
-                    continue
-                if not edge.valid(self, discovered):
+                if next_node not in available or not edge.valid(self, discovered):
                     continue
                 r = copy.deepcopy(route)
                 r.append(next_node)
