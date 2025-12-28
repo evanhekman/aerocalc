@@ -1,4 +1,6 @@
+import copy
 from collections import deque
+from dis import disco
 from typing import Set
 
 type NodeKey = str
@@ -91,11 +93,11 @@ class Graph:
 
     def calculate_available(self, nodes: Set[NodeKey]) -> Set[NodeKey]:
         self.current_nodes = nodes
-        next = self._calculate_available(nodes)
-        while len(next) > len(self.current_nodes):
-            self.current_nodes = next
-            next = self._calculate_available(self.current_nodes)
-        return next
+        next_nodes = self._calculate_available(nodes)
+        while len(next_nodes) > len(self.current_nodes):
+            self.current_nodes = next_nodes
+            next_nodes = self._calculate_available(self.current_nodes)
+        return next_nodes
 
     def valid_conditions(self, test_conditions: Set[ConditionKey]) -> bool:
         return all([c in self.conditions for c in test_conditions])
@@ -103,7 +105,34 @@ class Graph:
     def valid_node(self, node: NodeKey) -> bool:
         return node in self.current_nodes
 
-    def solve(self, node1: NodeKey, node2: NodeKey): ...
+    def solve_all(self, nodes: Set[NodeKey], node1: NodeKey, node2: NodeKey):
+        before = nodes
+        assert node1 in before
+        after = self.calculate_available(nodes)
+        assert node2 in after
+
+        # start with node1
+        # iteratively add routes for each node1.neighbor
+        # if it reaches node2, consider it a valid route
+        # no cycles
+
+        current_routes = deque([[node1]])
+        valid_routes = []
+        discovered = set([node1])
+
+        while len(current_routes) > 0:
+            route = current_routes.pop()
+            end_node = route[-1]
+            for next_node, _ in self.all_nodes[end_node].neighbors:
+                r = copy.deepcopy(route)
+                r.append(next_node)
+                if next_node == node2:
+                    valid_routes.append(r)
+                elif next_node not in discovered:
+                    current_routes.append(r)
+                    discovered.add(next_node)
+
+        return valid_routes
 
 
 def build_graph(nodes: dict[str, Node], edges: list[Edge]) -> "Graph":

@@ -93,6 +93,8 @@ GRAPH = g.build_graph(NODES, EDGES)
 NODES_1 = set([P, V, n, T, f])
 NODES_2 = set([P, V, n, T])
 NODES_3 = set([P, V, T])
-for NODES in [NODES_1, NODES_2, NODES_3]:
-    print("starting with", NODES)
-    print("can reach", GRAPH.calculate_available(NODES))
+# for NODES in [NODES_1, NODES_2, NODES_3]:
+#     print("starting with", NODES)
+#     print("can reach", GRAPH.calculate_available(NODES))
+
+print(GRAPH.solve_all(NODES_1, P, U))
