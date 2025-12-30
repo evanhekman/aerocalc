@@ -196,7 +196,7 @@ class GraphRenderer {
       inputDiv.style.left = pos.x + 35 + "px";
       inputDiv.style.top = pos.y - 22 + "px";
       inputDiv.style.flexDirection = "column";
-      inputDiv.style.alignItems = "flex-start";
+      inputDiv.style.width = "150px";
 
       // Create segmented bar (only for computed nodes with alternatives)
       if (computation && computation.alternatives.length > 1) {

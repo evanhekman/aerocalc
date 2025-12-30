@@ -52,7 +52,7 @@ body {
 }
 
 .node-input input {
-    width: 100px;
+    width: 150px;
     padding: 4px 6px;
     background: #000;
     border: 1px solid #0f0;
@@ -60,6 +60,7 @@ body {
     font-family: "Courier New", monospace;
     font-size: 0.8em;
     text-align: center;
+    box-sizing: border-box;
 }
 
 .node-input input:focus {
@@ -73,13 +74,15 @@ body {
     display: flex;
     flex-wrap: wrap;
     gap: 2px;
-    width: 100px;
+    width: 150px !important;
     min-height: 20px;
     box-sizing: border-box;
 }
 
 .unit-segment {
-    flex: 1 1 0;
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-basis: 0%;
     padding: 3px 4px;
     background: #000;
     border: 1px solid #333;
