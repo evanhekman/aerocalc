@@ -42,13 +42,17 @@ body {
 }
 
 .node-input {
-    width: 120px;
+    width: auto;
     position: absolute;
     pointer-events: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: flex-start;
 }
 
 .node-input input {
-    width: 100%;
+    width: 100px;
     padding: 4px 6px;
     background: #000;
     border: 1px solid #0f0;
@@ -62,6 +66,43 @@ body {
     outline: none;
     border-color: #0f0;
     box-shadow: 0 0 5px rgba(0, 255, 0, 0.3);
+}
+
+/* Horizontal unit segment bar */
+.unit-segment-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    width: 100px;
+    min-height: 20px;
+    box-sizing: border-box;
+}
+
+.unit-segment {
+    flex: 1 1 0;
+    padding: 3px 4px;
+    background: #000;
+    border: 1px solid #333;
+    color: #666;
+    font-family: "Courier New", monospace;
+    font-size: 0.7em;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.1s;
+    box-sizing: border-box;
+}
+
+.unit-segment:hover {
+    border-color: #666;
+    color: #999;
+}
+
+.unit-segment.active {
+    background: #0a0;
+    border-color: #0a0;
+    color: #000;
 }
 
 /* Sidebar */

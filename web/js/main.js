@@ -29,10 +29,11 @@ function loadGraphData(graphName) {
 const AppState = {
     graphData: null,
     graph: null,
-    knownValues: new Map(), // User-entered values
-    computedValues: new Map(), // {node -> {value, edge, alternatives}}
+    knownValues: new Map(), // User-entered values (in selected units)
+    computedValues: new Map(), // {node -> {value, edge, alternatives}} (in selected units)
     activeEdges: new Map(), // node -> edge currently used for computation
     activeConditions: new Set(),
+    selectedUnits: new Map(), // node -> selected unit
     startNode: null,
     endNode: null,
     paths: [],
@@ -41,6 +42,14 @@ const AppState = {
         this.graphData = loadGraphData(graphName);
         this.graph = this.graphData.graph;
         this.activeConditions = new Set(this.graphData.defaultConditions || []);
+
+        // Initialize selected units (default to first unit in list)
+        this.selectedUnits.clear();
+        if (this.graphData.units) {
+            for (const [node, unitOptions] of Object.entries(this.graphData.units)) {
+                this.selectedUnits.set(node, unitOptions[0]);
+            }
+        }
 
         // Initialize with default known values if provided
         if (this.graphData.defaultKnown) {
@@ -68,15 +77,33 @@ const AppState = {
         this.solvePaths();
     },
 
+    setSelectedUnit(node, unit) {
+        // Convert known value to new unit if it exists
+        if (this.knownValues.has(node)) {
+            const oldUnit = this.selectedUnits.get(node);
+            const valueInStandard = toStandardUnit(this.knownValues.get(node), node, oldUnit);
+            const valueInNewUnit = fromStandardUnit(valueInStandard, node, unit);
+            this.knownValues.set(node, valueInNewUnit);
+        }
+
+        this.selectedUnits.set(node, unit);
+        this.computeAll();
+        this.solvePaths();
+    },
+
     computeAll() {
         // Clear computed values
         this.computedValues.clear();
 
-        // Build values object from known values
+        // Build values object from known values (convert to standard units for computation)
         const values = {};
         for (const [node, value] of this.knownValues) {
-            values[node] = value;
+            const unit = this.selectedUnits.get(node);
+            values[node] = toStandardUnit(value, node, unit);
         }
+
+        // Auto-calculate R (gas constant) - always use standard units for computation
+        values['R'] = getStandardR();
 
         // Iteratively compute values until no new ones are found
         let changed = true;
@@ -89,6 +116,9 @@ const AppState = {
 
             // For each node, try to compute it
             for (const nodeName of this.graphData.nodes) {
+                // Skip R - it's auto-calculated
+                if (nodeName === 'R') continue;
+
                 // Skip if already known by user
                 if (this.knownValues.has(nodeName)) continue;
 
@@ -103,7 +133,8 @@ const AppState = {
                     if (!edge.solveFunctions[nodeName]) continue;
 
                     // Check if edge is valid (conditions met, etc.)
-                    const knownSet = new Set([...this.knownValues.keys(), ...this.computedValues.keys()]);
+                    // Include R in the known set since it's always available
+                    const knownSet = new Set([...this.knownValues.keys(), ...this.computedValues.keys(), 'R']);
                     if (!edge.valid(this.graph, knownSet)) continue;
 
                     // Check if all required values are available
@@ -131,8 +162,16 @@ const AppState = {
 
                     if (canCompute) {
                         try {
-                            const computedValue = edge.solveFunctions[nodeName](values);
-                            computationOptions.push({ edge, value: computedValue });
+                            // Compute in standard units
+                            const computedValueStandard = edge.solveFunctions[nodeName](values);
+
+                            // Convert to selected unit for display
+                            const selectedUnit = this.selectedUnits.get(nodeName);
+                            const computedValue = selectedUnit
+                                ? fromStandardUnit(computedValueStandard, nodeName, selectedUnit)
+                                : computedValueStandard;
+
+                            computationOptions.push({ edge, value: computedValue, valueStandard: computedValueStandard });
                         } catch (e) {
                             // Skip if computation fails
                         }
@@ -141,13 +180,13 @@ const AppState = {
 
                 // If we found ways to compute this node
                 if (computationOptions.length > 0) {
-                    // Filter to unique values (within tolerance)
+                    // Filter to unique values (within tolerance, using standard units)
                     const uniqueOptions = [];
                     const tolerance = 1e-6;
 
                     for (const opt of computationOptions) {
                         const isDuplicate = uniqueOptions.some(
-                            existing => Math.abs(existing.value - opt.value) < tolerance
+                            existing => Math.abs(existing.valueStandard - opt.valueStandard) < tolerance
                         );
                         if (!isDuplicate) {
                             uniqueOptions.push(opt);
@@ -163,16 +202,26 @@ const AppState = {
                     }
 
                     this.computedValues.set(nodeName, {
-                        value: activeOption.value,
+                        value: activeOption.value, // Display value (in selected units)
                         edge: activeOption.edge,
                         alternatives: uniqueOptions
                     });
 
-                    values[nodeName] = activeOption.value;
+                    // Store standard value for further computation
+                    values[nodeName] = activeOption.valueStandard;
                     changed = true;
                 }
             }
         }
+
+        // Add R as a computed value (display in selected units)
+        const selectedRUnit = this.selectedUnits.get('R');
+        const rDisplayValue = calculateR(selectedRUnit);
+        this.computedValues.set('R', {
+            value: rDisplayValue,
+            edge: null,
+            alternatives: []
+        });
     },
 
     toggleCondition(condition) {

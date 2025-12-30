@@ -103,6 +103,24 @@ function loadChem() {
         conditions: [],
         defaultKnown: [P, V, n, T, f],
         defaultConditions: [],
-        graph: graph
+        graph: graph,
+        units: {
+            P: ['Pa', 'kPa', 'atm', 'bar', 'mmHg', 'psi'],
+            V: ['m³', 'L', 'mL', 'cm³'],
+            n: ['mol', 'mmol', 'kmol'],
+            R: ['J/(mol·K)', 'L·atm/(mol·K)', 'cal/(mol·K)'],
+            T: ['K', '°C'],
+            U: ['J', 'kJ', 'cal', 'kcal'],
+            f: ['3', '5', '6', '7']
+        },
+        standardUnits: {
+            P: 'Pa',
+            V: 'm³',
+            n: 'mol',
+            R: 'J/(mol·K)',
+            T: 'K',
+            U: 'J',
+            f: '3'
+        }
     };
 }

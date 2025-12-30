@@ -17,7 +17,7 @@ class GraphRenderer {
   initializePositions(nodes) {
     const centerX = this.canvas.width / 2;
     const centerY = this.canvas.height / 2;
-    const radius = Math.min(this.canvas.width, this.canvas.height) / 3;
+    const radius = Math.min(this.canvas.width, this.canvas.height) / 2.5;
     const angleStep = (2 * Math.PI) / nodes.length;
 
     nodes.forEach((node, i) => {
@@ -195,6 +195,8 @@ class GraphRenderer {
       inputDiv.className = "node-input";
       inputDiv.style.left = pos.x + 35 + "px";
       inputDiv.style.top = pos.y - 22 + "px";
+      inputDiv.style.flexDirection = "column";
+      inputDiv.style.alignItems = "flex-start";
 
       // Create segmented bar (only for computed nodes with alternatives)
       if (computation && computation.alternatives.length > 1) {
@@ -240,7 +242,15 @@ class GraphRenderer {
       input.dataset.node = node;
 
       // Set value and colors
-      if (isKnown) {
+      if (node === 'R') {
+        // R is special: always show value, green styling, read-only
+        input.value = computation ? computation.value.toFixed(4) : "";
+        input.placeholder = "";
+        input.style.color = "#0f0";
+        input.style.borderColor = "#0f0";
+        input.readOnly = true;
+        input.style.cursor = "default";
+      } else if (isKnown) {
         input.value = state.knownValues.get(node);
         input.placeholder = "";
         if (isStart) {
@@ -271,13 +281,45 @@ class GraphRenderer {
         input.style.borderColor = "#333";
       }
 
-      // Make computed values editable (converts to known)
-      input.addEventListener("input", (e) => {
-        state.setKnownValue(node, e.target.value);
-        this.render(state);
-      });
+      // Make computed values editable (converts to known), except R
+      if (node !== 'R') {
+        input.addEventListener("input", (e) => {
+          state.setKnownValue(node, e.target.value);
+          this.render(state);
+        });
+      }
 
       inputDiv.appendChild(input);
+
+      // Create horizontal unit selector segments (if units are defined for this node)
+      if (state.graphData.units && state.graphData.units[node]) {
+        const unitBar = document.createElement("div");
+        unitBar.className = "unit-segment-bar";
+
+        const unitOptions = state.graphData.units[node];
+        const currentUnit = state.selectedUnits.get(node);
+
+        unitOptions.forEach((unit) => {
+          const segment = document.createElement("div");
+          segment.className = "unit-segment";
+          segment.textContent = unit;
+
+          const isActive = unit === currentUnit;
+          if (isActive) {
+            segment.classList.add("active");
+          }
+
+          segment.addEventListener("click", () => {
+            state.setSelectedUnit(node, unit);
+            this.render(state);
+          });
+
+          unitBar.appendChild(segment);
+        });
+
+        inputDiv.appendChild(unitBar);
+      }
+
       this.inputsContainer.appendChild(inputDiv);
     });
 
