@@ -172,6 +172,57 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+        const isMeta = e.metaKey || e.ctrlKey;
+
+        // Meta-Z: Focus starting node
+        if (isMeta && e.key === 'z') {
+            e.preventDefault();
+            startInput.focus();
+            startInput.select();
+        }
+
+        // Meta-X: Focus ending node
+        if (isMeta && e.key === 'x') {
+            e.preventDefault();
+            endInput.focus();
+            endInput.select();
+        }
+
+        // Meta-C: Focus first condition button
+        if (isMeta && e.key === 'c') {
+            e.preventDefault();
+            const firstCondition = document.querySelector('.condition-btn');
+            if (firstCondition) {
+                firstCondition.focus();
+            }
+        }
+
+        // Meta-Enter: Trigger solve
+        if (isMeta && e.key === 'Enter') {
+            e.preventDefault();
+            solveButton.click();
+        }
+
+        // Spacebar: Toggle focused condition button
+        if (e.key === ' ' && document.activeElement.classList.contains('condition-btn')) {
+            e.preventDefault();
+            document.activeElement.click();
+        }
+    });
+
+    // Make condition buttons focusable
+    document.querySelectorAll('.condition-btn').forEach(btn => {
+        btn.setAttribute('tabindex', '0');
+    });
+
     console.log('AeroCalc initialized!');
     console.log('Graph:', AppState.graph);
+    console.log('Keyboard shortcuts:');
+    console.log('  Meta-Z: Focus starting node');
+    console.log('  Meta-X: Focus ending node');
+    console.log('  Meta-C: Focus conditions');
+    console.log('  Meta-Enter: Solve');
+    console.log('  Space: Toggle condition (when focused)');
 });

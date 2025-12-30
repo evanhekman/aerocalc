@@ -172,6 +172,11 @@ input[type="text"]::placeholder {
     transform: scale(0.98);
 }
 
+#solve-button:focus {
+    outline: 2px solid #666;
+    outline-offset: 2px;
+}
+
 /* Conditions */
 #conditions-list {
     display: flex;
@@ -199,6 +204,11 @@ input[type="text"]::placeholder {
 .condition-btn.active {
     border-color: #0f0;
     color: #0f0;
+}
+
+.condition-btn:focus {
+    outline: 2px solid #666;
+    outline-offset: 2px;
 }
 
 /* Scrollbar */
