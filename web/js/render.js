@@ -6,6 +6,8 @@ class GraphRenderer {
         this.ctx = canvas.getContext('2d');
         this.inputsContainer = inputsContainer;
         this.nodePositions = new Map();
+        this.dashOffset = 0;
+        this.animationFrame = null;
     }
 
     resizeCanvas() {
@@ -29,11 +31,43 @@ class GraphRenderer {
         });
     }
 
-    render(state) {
+    render(state, skipAnimation = false) {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.drawEdges(state);
         this.drawNodes(state);
         this.updateInputBoxes(state);
+
+        // Start or stop animation based on whether we have paths
+        if (!skipAnimation) {
+            if (state.paths && state.paths.length > 0) {
+                this.startAnimation(state);
+            } else {
+                this.stopAnimation();
+            }
+        }
+    }
+
+    startAnimation(state) {
+        if (this.animationFrame) return; // Already animating
+
+        const animate = () => {
+            this.dashOffset -= 0.5; // Speed of animation (negative = forward direction)
+            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+            this.drawEdges(state);
+            this.drawNodes(state);
+            // Input boxes are already positioned - no need to recreate during animation
+            this.animationFrame = requestAnimationFrame(animate);
+        };
+
+        animate();
+    }
+
+    stopAnimation() {
+        if (this.animationFrame) {
+            cancelAnimationFrame(this.animationFrame);
+            this.animationFrame = null;
+        }
+        this.dashOffset = 0;
     }
 
     drawEdges(state) {
@@ -67,12 +101,17 @@ class GraphRenderer {
                 if (isPathEdge) {
                     this.ctx.strokeStyle = '#0f0'; // Bright green for path
                     this.ctx.lineWidth = 4;
+                    // Animated dashed line
+                    this.ctx.setLineDash([10, 10]);
+                    this.ctx.lineDashOffset = this.dashOffset;
                 } else {
                     this.ctx.strokeStyle = '#1a1a1a'; // Dark gray for regular
                     this.ctx.lineWidth = 2;
+                    this.ctx.setLineDash([]); // Solid line
                 }
 
                 this.ctx.stroke();
+                this.ctx.setLineDash([]); // Reset for next draw
             }
         }
     }

@@ -123,6 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Handle window resize
     window.addEventListener('resize', () => {
+        renderer.stopAnimation(); // Stop animation before resizing
         renderer.resizeCanvas();
         renderer.initializePositions(AppState.graphData.nodes);
         renderer.render(AppState);
