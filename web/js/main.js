@@ -1,35 +1,28 @@
 // Main application state and orchestration
 
-// Load contrived example graph with full edge logic
-function loadContrivedExample() {
-    const A = 'A', B = 'B', C = 'C', D = 'D', E = 'E';
-    const c1 = 'cond1', c2 = 'cond2';
+// Get graph name from URL parameter, default to contrived
+function getGraphFromURL() {
+    const params = new URLSearchParams(window.location.search);
+    const graphName = params.get('graph') || 'contrived';
+    return graphName;
+}
 
-    const nodes = new Map();
-    [A, B, C, D, E].forEach(name => {
-        nodes.set(name, new Node(name));
-    });
-
-    const edges = [
-        new Edge(A, B, new Set(), new Set()),
-        new Edge(A, C, new Set(), new Set()),
-        new Edge(A, D, new Set(), new Set(), new Set([c1])),
-        new Edge(B, C, new Set(), new Set([A, B])),
-        new Edge(B, D, new Set([A, B]), new Set(), new Set([c1])),
-        new Edge(B, E, new Set(), new Set(), new Set([c1])),
-        new Edge(C, E, new Set(), new Set(), new Set([c2])),
-        new Edge(D, E, new Set(), new Set([A, B, C]))
-    ];
-
-    const conditions = new Set([c1, c2]);
-    const graph = new Graph(nodes, edges, conditions);
-
-    return {
-        nodes: [A, B, C, D, E],
-        edges: edges.map(e => ({ from: e.neighbor1, to: e.neighbor2 })),
-        conditions: [c1, c2],
-        graph: graph
+// Load the appropriate graph
+function loadGraphData(graphName) {
+    const loaders = {
+        'contrived': loadContrived,
+        'chem': loadChem,
+        'fictional': loadFictional,
+        'edgecase': loadEdgecase
     };
+
+    const loader = loaders[graphName];
+    if (!loader) {
+        console.warn(`Unknown graph: ${graphName}, falling back to contrived`);
+        return loaders['contrived']();
+    }
+
+    return loader();
 }
 
 // Application state
@@ -44,9 +37,16 @@ const AppState = {
     endNode: null,
     paths: [],
 
-    init() {
-        this.graphData = loadContrivedExample();
+    init(graphName) {
+        this.graphData = loadGraphData(graphName);
         this.graph = this.graphData.graph;
+
+        // Set default known nodes
+        this.knownNodes = new Set(this.graphData.defaultKnown || []);
+
+        // Set default active conditions
+        this.activeConditions = new Set(this.graphData.defaultConditions || []);
+
         this.updateAvailable();
     },
 
@@ -108,13 +108,48 @@ const AppState = {
 document.addEventListener('DOMContentLoaded', () => {
     console.log('Initializing AeroCalc...');
 
+    // Get graph from URL
+    const graphName = getGraphFromURL();
+    console.log(`Loading graph: ${graphName}`);
+
     // Initialize state
-    AppState.init();
+    AppState.init(graphName);
 
     // Setup renderer
     const canvas = document.getElementById('graph-canvas');
     const inputsContainer = document.getElementById('node-inputs');
     const renderer = new GraphRenderer(canvas, inputsContainer);
+
+    // Update conditions UI dynamically
+    const conditionsList = document.getElementById('conditions-list');
+    const conditionsLabel = conditionsList.parentElement.querySelector('label');
+    conditionsList.innerHTML = '';
+
+    if (AppState.graphData.conditions.length > 0) {
+        conditionsLabel.classList.add('green-label');
+
+        AppState.graphData.conditions.forEach(condition => {
+            const btn = document.createElement('button');
+            btn.className = 'condition-btn';
+            btn.textContent = condition;
+            btn.setAttribute('tabindex', '0');
+
+            if (AppState.activeConditions.has(condition)) {
+                btn.classList.add('active');
+            }
+
+            btn.addEventListener('click', () => {
+                btn.classList.toggle('active');
+                AppState.toggleCondition(condition);
+                renderer.render(AppState);
+            });
+
+            conditionsList.appendChild(btn);
+        });
+    } else {
+        conditionsLabel.classList.remove('green-label');
+        conditionsList.innerHTML = '<p class="hint">No conditions for this graph</p>';
+    }
 
     // Initial render
     renderer.resizeCanvas();
@@ -166,16 +201,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderer.render(AppState);
     });
 
-    // Handle condition toggles
-    document.querySelectorAll('.condition-btn').forEach(btn => {
-        const condition = btn.textContent.trim();
-
-        btn.addEventListener('click', () => {
-            btn.classList.toggle('active');
-            AppState.toggleCondition(condition);
-            renderer.render(AppState);
-        });
-    });
+    // Condition toggles are now dynamically created above
 
     // Get all focusable elements in sidebar
     function getFocusableElements() {
@@ -246,13 +272,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Make condition buttons focusable
-    document.querySelectorAll('.condition-btn').forEach(btn => {
-        btn.setAttribute('tabindex', '0');
-    });
+    // Condition buttons are made focusable when dynamically created
 
     console.log('AeroCalc initialized!');
-    console.log('Graph:', AppState.graph);
+    console.log(`Graph: ${AppState.graphData.name} - ${AppState.graphData.description}`);
+    console.log(`Nodes: ${AppState.graphData.nodes.length}, Edges: ${AppState.graph.allEdges.length}, Conditions: ${AppState.graphData.conditions.length}`);
+    console.log('');
+    console.log('Available graphs:');
+    console.log('  ?graph=contrived - Conditional edges example');
+    console.log('  ?graph=chem - Chemistry: PV=nRT & U=(f/2)nRT');
+    console.log('  ?graph=fictional - Simple pathfinding');
+    console.log('  ?graph=edgecase - Multiple minimal paths');
+    console.log('');
     console.log('Keyboard shortcuts:');
     console.log('  Meta-Z: Focus starting node');
     console.log('  Meta-X: Focus ending node');
