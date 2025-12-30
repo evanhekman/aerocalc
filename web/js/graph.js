@@ -2,12 +2,13 @@
 // Maintains exact algorithm semantics from aerocalc/graph.py
 
 class Edge {
-    constructor(n1, n2, reqAllNodes = new Set(), reqOneNode = new Set(), conditions = new Set()) {
+    constructor(n1, n2, reqAllNodes = new Set(), reqOneNode = new Set(), conditions = new Set(), solveFunctions = {}) {
         this.neighbor1 = n1;
         this.neighbor2 = n2;
         this.reqAllNodes = reqAllNodes;
         this.reqOneNode = reqOneNode;
         this.conditions = conditions;
+        this.solveFunctions = solveFunctions; // Map of {nodeName: (vals) => value}
         this.validGraphs = new Set(); // Cache for performance
     }
 

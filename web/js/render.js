@@ -6,8 +6,6 @@ class GraphRenderer {
     this.ctx = canvas.getContext("2d");
     this.inputsContainer = inputsContainer;
     this.nodePositions = new Map();
-    this.dashOffset = 0;
-    this.animationFrame = null;
   }
 
   resizeCanvas() {
@@ -31,87 +29,86 @@ class GraphRenderer {
     });
   }
 
-  render(state, skipAnimation = false) {
+  render(state) {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     this.drawEdges(state);
     this.drawNodes(state);
     this.updateInputBoxes(state);
-
-    // Start or stop animation based on whether we have paths
-    if (!skipAnimation) {
-      if (state.paths && state.paths.length > 0) {
-        this.startAnimation(state);
-      } else {
-        this.stopAnimation();
-      }
-    }
-  }
-
-  startAnimation(state) {
-    if (this.animationFrame) return; // Already animating
-
-    const animate = () => {
-      this.dashOffset -= 0.5; // Speed of animation (negative = forward direction)
-      this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-      this.drawEdges(state);
-      this.drawNodes(state);
-      // Input boxes are already positioned - no need to recreate during animation
-      this.animationFrame = requestAnimationFrame(animate);
-    };
-
-    animate();
-  }
-
-  stopAnimation() {
-    if (this.animationFrame) {
-      cancelAnimationFrame(this.animationFrame);
-      this.animationFrame = null;
-    }
-    this.dashOffset = 0;
   }
 
   drawEdges(state) {
-    // Collect edges that are part of solution paths
-    const pathEdges = new Set();
-    if (state.paths && state.paths.length > 0) {
-      for (const path of state.paths) {
-        for (let i = 0; i < path.length - 1; i++) {
-          const edge1 = `${path[i]}-${path[i + 1]}`;
-          const edge2 = `${path[i + 1]}-${path[i]}`; // Edges are bidirectional
-          pathEdges.add(edge1);
-          pathEdges.add(edge2);
+    // Collect edges that are actively used for computation
+    const activeEdges = new Set();
+    const alternativeEdges = new Set();
+
+    for (const [node, computation] of state.computedValues) {
+      activeEdges.add(computation.edge);
+      for (const alt of computation.alternatives) {
+        if (alt.edge !== computation.edge) {
+          alternativeEdges.add(alt.edge);
         }
       }
     }
 
-    // Draw regular edges
+    // Collect edges that are part of solution paths
+    const pathEdgeKeys = new Set();
+    if (state.paths && state.paths.length > 0) {
+      for (const path of state.paths) {
+        for (let i = 0; i < path.length - 1; i++) {
+          const key1 = `${path[i]}-${path[i + 1]}`;
+          const key2 = `${path[i + 1]}-${path[i]}`;
+          pathEdgeKeys.add(key1);
+          pathEdgeKeys.add(key2);
+        }
+      }
+    }
+
+    // Draw all edges
     for (const edge of state.graphData.edges) {
       const from = this.nodePositions.get(edge.from);
       const to = this.nodePositions.get(edge.to);
 
       if (from && to) {
+        // Find the actual edge object
+        const edgeObj = state.graph.allEdges.find(
+          e => (e.neighbor1 === edge.from && e.neighbor2 === edge.to) ||
+               (e.neighbor1 === edge.to && e.neighbor2 === edge.from)
+        );
+
         const edgeKey1 = `${edge.from}-${edge.to}`;
         const edgeKey2 = `${edge.to}-${edge.from}`;
-        const isPathEdge = pathEdges.has(edgeKey1) || pathEdges.has(edgeKey2);
+        const isPathEdge = pathEdgeKeys.has(edgeKey1) || pathEdgeKeys.has(edgeKey2);
+        const isActive = activeEdges.has(edgeObj);
+        const isAlternative = alternativeEdges.has(edgeObj);
 
         this.ctx.beginPath();
         this.ctx.moveTo(from.x, from.y);
         this.ctx.lineTo(to.x, to.y);
 
         if (isPathEdge) {
-          this.ctx.strokeStyle = "#0f0"; // Bright green for path
+          // Path edge: very bright solid green (highest priority)
+          this.ctx.strokeStyle = "#0f0";
           this.ctx.lineWidth = 4;
-          // Animated dashed line
-          this.ctx.setLineDash([10, 10]);
-          this.ctx.lineDashOffset = this.dashOffset;
-        } else {
-          this.ctx.strokeStyle = "#1a1a1a"; // Dark gray for regular
+          this.ctx.setLineDash([]);
+        } else if (isActive) {
+          // Active computation edge: bright solid green
+          this.ctx.strokeStyle = "#0f0";
+          this.ctx.lineWidth = 3;
+          this.ctx.setLineDash([]);
+        } else if (isAlternative) {
+          // Alternative computation edge: dimmed dashed green
+          this.ctx.strokeStyle = "rgba(0, 255, 0, 0.3)";
           this.ctx.lineWidth = 2;
-          this.ctx.setLineDash([]); // Solid line
+          this.ctx.setLineDash([5, 5]);
+        } else {
+          // Unused edge: gray
+          this.ctx.strokeStyle = "#1a1a1a";
+          this.ctx.lineWidth = 2;
+          this.ctx.setLineDash([]);
         }
 
         this.ctx.stroke();
-        this.ctx.setLineDash([]); // Reset for next draw
+        this.ctx.setLineDash([]); // Reset
       }
     }
   }
@@ -121,10 +118,10 @@ class GraphRenderer {
       const pos = this.nodePositions.get(node);
       if (!pos) return;
 
-      const isKnown = state.knownNodes.has(node);
+      const isKnown = state.knownValues.has(node);
+      const isComputed = state.computedValues.has(node);
       const isStart = state.startNode === node;
       const isEnd = state.endNode === node;
-      const isAvailable = state.availableNodes.has(node);
 
       // Draw circle
       this.ctx.beginPath();
@@ -143,7 +140,7 @@ class GraphRenderer {
         } else if (isEnd) {
           this.ctx.fillStyle = "rgba(255, 127, 80, 0.15)"; // Faint coral
         } else {
-          this.ctx.fillStyle = "rgba(0, 255, 0, 0.15)"; // Faint green
+          this.ctx.fillStyle = "rgba(0, 255, 0, 0.15)";
         }
         this.ctx.fill();
       }
@@ -158,7 +155,7 @@ class GraphRenderer {
       } else if (isKnown) {
         this.ctx.strokeStyle = "#0f0"; // Bright green
         this.ctx.lineWidth = 2;
-      } else if (isAvailable) {
+      } else if (isComputed) {
         this.ctx.strokeStyle = "#0a0"; // Medium green
         this.ctx.lineWidth = 2;
       } else {
@@ -174,7 +171,7 @@ class GraphRenderer {
         this.ctx.fillStyle = "#ff7f50";
       } else if (isKnown) {
         this.ctx.fillStyle = "#0f0";
-      } else if (isAvailable) {
+      } else if (isComputed) {
         this.ctx.fillStyle = "#0a0";
       } else {
         this.ctx.fillStyle = "#666";
@@ -188,12 +185,21 @@ class GraphRenderer {
   }
 
   updateInputBoxes(state) {
+    // Save current focus state
+    const focusedElement = document.activeElement;
+    const focusedNode = focusedElement && focusedElement.classList.contains('node-value-input')
+      ? focusedElement.dataset.node
+      : null;
+    const cursorPosition = focusedElement ? focusedElement.selectionStart : null;
+
     this.inputsContainer.innerHTML = "";
 
-    state.knownNodes.forEach((node) => {
+    state.graphData.nodes.forEach((node) => {
       const pos = this.nodePositions.get(node);
       if (!pos) return;
 
+      const isKnown = state.knownValues.has(node);
+      const computation = state.computedValues.get(node);
       const isStart = state.startNode === node;
       const isEnd = state.endNode === node;
 
@@ -202,27 +208,101 @@ class GraphRenderer {
       inputDiv.style.left = pos.x + 35 + "px";
       inputDiv.style.top = pos.y - 22 + "px";
 
-      const input = document.createElement("input");
-      input.type = "text";
-      input.placeholder = "0";
-      input.value = state.nodeValues.get(node) || "";
+      // Create segmented bar (only for computed nodes with alternatives)
+      if (computation && computation.alternatives.length > 1) {
+        const bar = document.createElement("div");
+        bar.className = "segment-bar";
+        bar.style.position = "absolute";
+        bar.style.left = "-8px";
+        bar.style.top = "0";
+        bar.style.width = "4px";
+        bar.style.height = "100%";
+        bar.style.display = "flex";
+        bar.style.flexDirection = "column";
+        bar.style.gap = "1px";
 
-      // Color-code based on start/end node
-      if (isStart) {
-        input.style.color = "#00bfff";
-        input.style.borderColor = "#00bfff";
-      } else if (isEnd) {
-        input.style.color = "#ff7f50";
-        input.style.borderColor = "#ff7f50";
+        for (let i = 0; i < computation.alternatives.length; i++) {
+          const segment = document.createElement("div");
+          segment.style.flex = "1";
+          segment.style.cursor = "pointer";
+
+          const isActive = computation.alternatives[i].edge === computation.edge;
+          if (isActive) {
+            segment.style.backgroundColor = "#0a0";
+          } else {
+            segment.style.backgroundColor = "#000";
+            segment.style.border = "1px solid #333";
+          }
+
+          segment.addEventListener("click", () => {
+            state.setActiveEdge(node, computation.alternatives[i].edge);
+            this.render(state);
+          });
+
+          bar.appendChild(segment);
+        }
+
+        inputDiv.appendChild(bar);
       }
 
+      // Create input
+      const input = document.createElement("input");
+      input.type = "text";
+      input.className = "node-value-input";
+      input.dataset.node = node;
+
+      // Set value and colors
+      if (isKnown) {
+        input.value = state.knownValues.get(node);
+        input.placeholder = "";
+        if (isStart) {
+          input.style.color = "#00bfff";
+          input.style.borderColor = "#00bfff";
+        } else if (isEnd) {
+          input.style.color = "#ff7f50";
+          input.style.borderColor = "#ff7f50";
+        } else {
+          input.style.color = "#0f0";
+          input.style.borderColor = "#0f0";
+        }
+      } else if (computation) {
+        input.value = computation.value.toFixed(2);
+        input.placeholder = "";
+        input.style.color = "#666";
+        if (isStart) {
+          input.style.borderColor = "#00bfff";
+        } else if (isEnd) {
+          input.style.borderColor = "#ff7f50";
+        } else {
+          input.style.borderColor = "#0a0";
+        }
+      } else {
+        input.value = "";
+        input.placeholder = "-";
+        input.style.color = "#666";
+        input.style.borderColor = "#333";
+      }
+
+      // Make computed values editable (converts to known)
       input.addEventListener("input", (e) => {
-        state.nodeValues.set(node, e.target.value);
+        state.setKnownValue(node, e.target.value);
+        this.render(state);
       });
 
       inputDiv.appendChild(input);
       this.inputsContainer.appendChild(inputDiv);
     });
+
+    // Restore focus if needed
+    if (focusedNode) {
+      const inputToFocus = this.inputsContainer.querySelector(`input[data-node="${focusedNode}"]`);
+      if (inputToFocus) {
+        inputToFocus.focus();
+        if (cursorPosition !== null) {
+          inputToFocus.setSelectionRange(cursorPosition, cursorPosition);
+        }
+      }
+    }
   }
 
   getNodeAtPosition(x, y) {

@@ -29,10 +29,10 @@ function loadGraphData(graphName) {
 const AppState = {
     graphData: null,
     graph: null,
-    knownNodes: new Set(),
-    nodeValues: new Map(),
-    availableNodes: new Set(),
-    activeConditions: new Set(['cond1', 'cond2']),
+    knownValues: new Map(), // User-entered values
+    computedValues: new Map(), // {node -> {value, edge, alternatives}}
+    activeEdges: new Map(), // node -> edge currently used for computation
+    activeConditions: new Set(),
     startNode: null,
     endNode: null,
     paths: [],
@@ -40,25 +40,126 @@ const AppState = {
     init(graphName) {
         this.graphData = loadGraphData(graphName);
         this.graph = this.graphData.graph;
-
-        // Set default known nodes
-        this.knownNodes = new Set(this.graphData.defaultKnown || []);
-
-        // Set default active conditions
         this.activeConditions = new Set(this.graphData.defaultConditions || []);
 
-        this.updateAvailable();
+        // Initialize with default known values if provided
+        if (this.graphData.defaultKnown) {
+            // Set some default values for demo (can be cleared by user)
+            // This is just for initial display, not actual values
+        }
+
+        this.computeAll();
     },
 
-    toggleNode(node) {
-        if (this.knownNodes.has(node)) {
-            this.knownNodes.delete(node);
-            this.nodeValues.delete(node);
+    setKnownValue(node, valueStr) {
+        const value = parseFloat(valueStr);
+        if (valueStr === '' || isNaN(value)) {
+            this.knownValues.delete(node);
         } else {
-            this.knownNodes.add(node);
+            this.knownValues.set(node, value);
         }
-        this.paths = []; // Clear paths when state changes
-        this.updateAvailable();
+        this.computeAll();
+        this.solvePaths();
+    },
+
+    setActiveEdge(node, edge) {
+        this.activeEdges.set(node, edge);
+        this.computeAll();
+        this.solvePaths();
+    },
+
+    computeAll() {
+        // Clear computed values
+        this.computedValues.clear();
+
+        // Build values object from known values
+        const values = {};
+        for (const [node, value] of this.knownValues) {
+            values[node] = value;
+        }
+
+        // Iteratively compute values until no new ones are found
+        let changed = true;
+        let iterations = 0;
+        const maxIterations = 100; // Prevent infinite loops
+
+        while (changed && iterations < maxIterations) {
+            changed = false;
+            iterations++;
+
+            // For each node, try to compute it
+            for (const nodeName of this.graphData.nodes) {
+                // Skip if already known by user
+                if (this.knownValues.has(nodeName)) continue;
+
+                // Skip if already computed this iteration
+                if (this.computedValues.has(nodeName)) continue;
+
+                // Find all edges that can compute this node
+                const computationOptions = [];
+
+                for (const edge of this.graph.allEdges) {
+                    // Check if this edge has a solve function for this node
+                    if (!edge.solveFunctions[nodeName]) continue;
+
+                    // Check if edge is valid (conditions met, etc.)
+                    const knownSet = new Set([...this.knownValues.keys(), ...this.computedValues.keys()]);
+                    if (!edge.valid(this.graph, knownSet)) continue;
+
+                    // Check if all required values are available
+                    const reqAll = edge.reqAllNodes;
+                    const reqOne = edge.reqOneNode;
+
+                    let canCompute = true;
+                    for (const req of reqAll) {
+                        if (!values[req]) {
+                            canCompute = false;
+                            break;
+                        }
+                    }
+
+                    if (reqOne.size > 0) {
+                        let hasOne = false;
+                        for (const req of reqOne) {
+                            if (values[req]) {
+                                hasOne = true;
+                                break;
+                            }
+                        }
+                        if (!hasOne) canCompute = false;
+                    }
+
+                    if (canCompute) {
+                        try {
+                            const computedValue = edge.solveFunctions[nodeName](values);
+                            computationOptions.push({ edge, value: computedValue });
+                        } catch (e) {
+                            // Skip if computation fails
+                        }
+                    }
+                }
+
+                // If we found ways to compute this node
+                if (computationOptions.length > 0) {
+                    // Use active edge if set, otherwise use first
+                    let activeOption = computationOptions[0];
+                    if (this.activeEdges.has(nodeName)) {
+                        const activeEdge = this.activeEdges.get(nodeName);
+                        const found = computationOptions.find(opt => opt.edge === activeEdge);
+                        if (found) activeOption = found;
+                    }
+
+                    this.computedValues.set(nodeName, {
+                        value: activeOption.value,
+                        edge: activeOption.edge,
+                        alternatives: computationOptions
+                    });
+
+                    values[nodeName] = activeOption.value;
+                    changed = true;
+                }
+            }
+        }
     },
 
     toggleCondition(condition) {
@@ -75,31 +176,29 @@ const AppState = {
             edge.validGraphs.clear();
         }
 
-        this.paths = []; // Clear paths when state changes
-        this.updateAvailable();
+        this.computeAll();
+        this.solvePaths();
     },
 
-    updateAvailable() {
-        this.availableNodes = this.graph.calculateAvailable(this.knownNodes);
-    },
+    solvePaths() {
+        this.paths = [];
 
-    solve() {
         if (!this.startNode || !this.endNode) {
-            console.warn('Start and end nodes must be specified');
-            return [];
+            return;
         }
 
-        if (!this.knownNodes.has(this.startNode)) {
-            console.warn('Start node must be in known nodes');
-            return [];
+        // Get all known nodes (user-entered + computed)
+        const knownNodes = new Set([...this.knownValues.keys(), ...this.computedValues.keys()]);
+
+        if (!knownNodes.has(this.startNode)) {
+            return;
         }
 
         try {
-            this.paths = this.graph.solveAll(this.knownNodes, this.startNode, this.endNode);
-            return this.paths;
+            this.paths = this.graph.solveAll(knownNodes, this.startNode, this.endNode);
         } catch (error) {
-            console.error('Solve error:', error);
-            return [];
+            // Path not found or error
+            this.paths = [];
         }
     }
 };
@@ -158,46 +257,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Handle window resize
     window.addEventListener('resize', () => {
-        renderer.stopAnimation(); // Stop animation before resizing
         renderer.resizeCanvas();
         renderer.initializePositions(AppState.graphData.nodes);
         renderer.render(AppState);
     });
 
-    // Handle canvas clicks (toggle nodes)
-    canvas.addEventListener('click', (e) => {
-        const rect = canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-
-        const node = renderer.getNodeAtPosition(x, y);
-        if (node) {
-            AppState.toggleNode(node);
-            renderer.render(AppState);
-        }
-    });
-
-    // Handle start node input
+    // Handle start/end node inputs
     const startInput = document.getElementById('start-node');
+    const endInput = document.getElementById('end-node');
+
     startInput.addEventListener('input', (e) => {
         AppState.startNode = e.target.value.toUpperCase() || null;
-        AppState.paths = []; // Clear paths when start/end changes
+        AppState.solvePaths();
         renderer.render(AppState);
     });
 
-    // Handle end node input
-    const endInput = document.getElementById('end-node');
     endInput.addEventListener('input', (e) => {
         AppState.endNode = e.target.value.toUpperCase() || null;
-        AppState.paths = []; // Clear paths when start/end changes
-        renderer.render(AppState);
-    });
-
-    // Handle solve button
-    const solveButton = document.getElementById('solve-button');
-    solveButton.addEventListener('click', () => {
-        const paths = AppState.solve();
-        console.log('Found paths:', paths);
+        AppState.solvePaths();
         renderer.render(AppState);
     });
 
@@ -235,12 +312,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (firstCondition) {
                 firstCondition.focus();
             }
-        }
-
-        // Meta-Enter: Trigger solve
-        if (isMeta && e.key === 'Enter') {
-            e.preventDefault();
-            solveButton.click();
         }
 
         // Spacebar: Toggle focused condition button
@@ -288,7 +359,6 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('  Meta-Z: Focus starting node');
     console.log('  Meta-X: Focus ending node');
     console.log('  Meta-C: Focus conditions');
-    console.log('  Meta-Enter: Solve');
     console.log('  Space: Toggle condition (when focused)');
     console.log('  Up/Down Arrows: Navigate sidebar elements');
 });
