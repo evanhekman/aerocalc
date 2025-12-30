@@ -37,17 +37,41 @@ class GraphRenderer {
     }
 
     drawEdges(state) {
-        this.ctx.strokeStyle = '#1a1a1a';
-        this.ctx.lineWidth = 2;
+        // Collect edges that are part of solution paths
+        const pathEdges = new Set();
+        if (state.paths && state.paths.length > 0) {
+            for (const path of state.paths) {
+                for (let i = 0; i < path.length - 1; i++) {
+                    const edge1 = `${path[i]}-${path[i + 1]}`;
+                    const edge2 = `${path[i + 1]}-${path[i]}`; // Edges are bidirectional
+                    pathEdges.add(edge1);
+                    pathEdges.add(edge2);
+                }
+            }
+        }
 
+        // Draw regular edges
         for (const edge of state.graphData.edges) {
             const from = this.nodePositions.get(edge.from);
             const to = this.nodePositions.get(edge.to);
 
             if (from && to) {
+                const edgeKey1 = `${edge.from}-${edge.to}`;
+                const edgeKey2 = `${edge.to}-${edge.from}`;
+                const isPathEdge = pathEdges.has(edgeKey1) || pathEdges.has(edgeKey2);
+
                 this.ctx.beginPath();
                 this.ctx.moveTo(from.x, from.y);
                 this.ctx.lineTo(to.x, to.y);
+
+                if (isPathEdge) {
+                    this.ctx.strokeStyle = '#0f0'; // Bright green for path
+                    this.ctx.lineWidth = 4;
+                } else {
+                    this.ctx.strokeStyle = '#1a1a1a'; // Dark gray for regular
+                    this.ctx.lineWidth = 2;
+                }
+
                 this.ctx.stroke();
             }
         }

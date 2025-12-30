@@ -57,6 +57,7 @@ const AppState = {
         } else {
             this.knownNodes.add(node);
         }
+        this.paths = []; // Clear paths when state changes
         this.updateAvailable();
     },
 
@@ -74,6 +75,7 @@ const AppState = {
             edge.validGraphs.clear();
         }
 
+        this.paths = []; // Clear paths when state changes
         this.updateAvailable();
     },
 
@@ -143,6 +145,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const startInput = document.getElementById('start-node');
     startInput.addEventListener('input', (e) => {
         AppState.startNode = e.target.value.toUpperCase() || null;
+        AppState.paths = []; // Clear paths when start/end changes
         renderer.render(AppState);
     });
 
@@ -150,6 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const endInput = document.getElementById('end-node');
     endInput.addEventListener('input', (e) => {
         AppState.endNode = e.target.value.toUpperCase() || null;
+        AppState.paths = []; // Clear paths when start/end changes
         renderer.render(AppState);
     });
 
@@ -158,7 +162,7 @@ document.addEventListener('DOMContentLoaded', () => {
     solveButton.addEventListener('click', () => {
         const paths = AppState.solve();
         console.log('Found paths:', paths);
-        // TODO: Visualize paths on canvas
+        renderer.render(AppState);
     });
 
     // Handle condition toggles
@@ -171,6 +175,13 @@ document.addEventListener('DOMContentLoaded', () => {
             renderer.render(AppState);
         });
     });
+
+    // Get all focusable elements in sidebar
+    function getFocusableElements() {
+        const sidebar = document.getElementById('sidebar');
+        return Array.from(sidebar.querySelectorAll('input, button'))
+            .filter(el => !el.disabled && el.offsetParent !== null);
+    }
 
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
@@ -210,6 +221,28 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             document.activeElement.click();
         }
+
+        // Arrow up/down navigation in sidebar
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            const focusableElements = getFocusableElements();
+            const currentIndex = focusableElements.indexOf(document.activeElement);
+
+            if (currentIndex !== -1) {
+                e.preventDefault();
+                let nextIndex;
+
+                if (e.key === 'ArrowDown') {
+                    nextIndex = (currentIndex + 1) % focusableElements.length;
+                } else {
+                    nextIndex = (currentIndex - 1 + focusableElements.length) % focusableElements.length;
+                }
+
+                focusableElements[nextIndex].focus();
+                if (focusableElements[nextIndex].select) {
+                    focusableElements[nextIndex].select();
+                }
+            }
+        }
     });
 
     // Make condition buttons focusable
@@ -225,4 +258,5 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('  Meta-C: Focus conditions');
     console.log('  Meta-Enter: Solve');
     console.log('  Space: Toggle condition (when focused)');
+    console.log('  Up/Down Arrows: Navigate sidebar elements');
 });
