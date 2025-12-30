@@ -1,143 +1,177 @@
-// Main application initialization and state management
+// Main application state and orchestration
+
+// Load contrived example graph with full edge logic
+function loadContrivedExample() {
+    const A = 'A', B = 'B', C = 'C', D = 'D', E = 'E';
+    const c1 = 'cond1', c2 = 'cond2';
+
+    const nodes = new Map();
+    [A, B, C, D, E].forEach(name => {
+        nodes.set(name, new Node(name));
+    });
+
+    const edges = [
+        new Edge(A, B, new Set(), new Set()),
+        new Edge(A, C, new Set(), new Set()),
+        new Edge(A, D, new Set(), new Set(), new Set([c1])),
+        new Edge(B, C, new Set(), new Set([A, B])),
+        new Edge(B, D, new Set([A, B]), new Set(), new Set([c1])),
+        new Edge(B, E, new Set(), new Set(), new Set([c1])),
+        new Edge(C, E, new Set(), new Set(), new Set([c2])),
+        new Edge(D, E, new Set(), new Set([A, B, C]))
+    ];
+
+    const conditions = new Set([c1, c2]);
+    const graph = new Graph(nodes, edges, conditions);
+
+    return {
+        nodes: [A, B, C, D, E],
+        edges: edges.map(e => ({ from: e.neighbor1, to: e.neighbor2 })),
+        conditions: [c1, c2],
+        graph: graph
+    };
+}
 
 // Application state
 const AppState = {
-    // Graph data
+    graphData: null,
     graph: null,
-    layout: null,
-    allConditions: [],
-
-    // User selections
     knownNodes: new Set(),
-    activeConditions: new Set(),
-
-    // Computed state
+    nodeValues: new Map(),
     availableNodes: new Set(),
-    currentPaths: [],
+    activeConditions: new Set(['cond1', 'cond2']),
+    startNode: null,
+    endNode: null,
+    paths: [],
 
-    // UI references
-    visualizer: null,
-    uiController: null,
-
-    // Update methods
-    updateAvailableNodes() {
-        this.availableNodes = this.graph.calculateAvailable(this.knownNodes);
-        this.visualizer.availableNodes = this.availableNodes;
-        this.visualizer.updateColors();
+    init() {
+        this.graphData = loadContrivedExample();
+        this.graph = this.graphData.graph;
+        this.updateAvailable();
     },
 
-    toggleNode(nodeName) {
-        if (this.knownNodes.has(nodeName)) {
-            this.knownNodes.delete(nodeName);
+    toggleNode(node) {
+        if (this.knownNodes.has(node)) {
+            this.knownNodes.delete(node);
+            this.nodeValues.delete(node);
         } else {
-            this.knownNodes.add(nodeName);
+            this.knownNodes.add(node);
         }
-        this.visualizer.knownNodes = this.knownNodes;
-        this.updateAvailableNodes();
-        this.clearPaths();
+        this.updateAvailable();
     },
 
-    solve(startNode, endNode) {
-        const paths = this.graph.solveAll(this.knownNodes, startNode, endNode);
-        this.currentPaths = paths;
-        this.visualizer.highlightPaths(paths);
-        return paths;
-    },
-
-    clearPaths() {
-        this.currentPaths = [];
-        this.visualizer.clearPathHighlights();
-    },
-
-    loadGraph(exampleKey) {
-        const example = loadExample(exampleKey);
-
-        this.graph = example.graph;
-        this.allConditions = example.allConditions;
-        this.activeConditions = new Set(this.graph.conditions);
-        this.knownNodes = new Set(example.defaultKnown);
-        this.availableNodes = new Set();
-        this.currentPaths = [];
-
-        // Create layout
-        this.layout = new GraphLayout(this.graph);
-        this.layout.initialize();
-        console.log(`Computing layout for ${this.graph.allNodes.size} nodes...`);
-        const startTime = performance.now();
-        this.layout.stabilize(200);
-        const endTime = performance.now();
-        console.log(`Layout computed in ${(endTime - startTime).toFixed(2)}ms`);
-
-        // Clear and rebuild visualization
-        this.rebuildVisualization();
-
-        // Update UI
-        this.uiController.updateForNewGraph();
-
-        // Calculate initial available nodes
-        this.visualizer.knownNodes = this.knownNodes;
-        this.updateAvailableNodes();
-
-        console.log(`Loaded example: ${example.name}`);
-        console.log(`Nodes: ${this.graph.allNodes.size}, Edges: ${this.graph.allEdges.length}`);
-    },
-
-    rebuildVisualization() {
-        // Clear existing scene
-        while (this.visualizer.scene.children.length > 0) {
-            const object = this.visualizer.scene.children[0];
-            this.visualizer.scene.remove(object);
-            if (object.geometry) object.geometry.dispose();
-            if (object.material) object.material.dispose();
+    toggleCondition(condition) {
+        if (this.activeConditions.has(condition)) {
+            this.activeConditions.delete(condition);
+            this.graph.conditions.delete(condition);
+        } else {
+            this.activeConditions.add(condition);
+            this.graph.conditions.add(condition);
         }
 
-        // Re-add lights
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-        this.visualizer.scene.add(ambientLight);
-
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.4);
-        directionalLight.position.set(10, 10, 10);
-        this.visualizer.scene.add(directionalLight);
-
-        // Clear maps
-        this.visualizer.nodeObjects.clear();
-        this.visualizer.edgeObjects.clear();
-        this.visualizer.labelSprites.clear();
-
-        // Create nodes and edges in visualizer
-        for (const [nodeName] of this.graph.allNodes) {
-            const pos = this.layout.positions.get(nodeName);
-            this.visualizer.createNode(nodeName, pos);
-        }
-
+        // Clear edge validation caches
         for (const edge of this.graph.allEdges) {
-            const pos1 = this.layout.positions.get(edge.neighbor1);
-            const pos2 = this.layout.positions.get(edge.neighbor2);
-            this.visualizer.createEdge(edge, pos1, pos2);
+            edge.validGraphs.clear();
+        }
+
+        this.updateAvailable();
+    },
+
+    updateAvailable() {
+        this.availableNodes = this.graph.calculateAvailable(this.knownNodes);
+    },
+
+    solve() {
+        if (!this.startNode || !this.endNode) {
+            console.warn('Start and end nodes must be specified');
+            return [];
+        }
+
+        if (!this.knownNodes.has(this.startNode)) {
+            console.warn('Start node must be in known nodes');
+            return [];
+        }
+
+        try {
+            this.paths = this.graph.solveAll(this.knownNodes, this.startNode, this.endNode);
+            return this.paths;
+        } catch (error) {
+            console.error('Solve error:', error);
+            return [];
         }
     }
 };
 
-// Initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', initApp);
+// Initialize on DOM ready
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('Initializing AeroCalc...');
 
-function initApp() {
-    console.log('Initializing AeroCalc Web Visualizer...');
+    // Initialize state
+    AppState.init();
 
-    // Create visualizer
-    const container = document.getElementById('graph-container');
-    AppState.visualizer = new GraphVisualizer(container);
+    // Setup renderer
+    const canvas = document.getElementById('graph-canvas');
+    const inputsContainer = document.getElementById('node-inputs');
+    const renderer = new GraphRenderer(canvas, inputsContainer);
 
-    // Load default example (chem)
-    AppState.loadGraph('chem');
+    // Initial render
+    renderer.resizeCanvas();
+    renderer.initializePositions(AppState.graphData.nodes);
+    renderer.render(AppState);
 
-    // Create UI controller
-    AppState.uiController = new UIController(AppState);
-
-    // Listen for example changes
-    window.addEventListener('loadExample', (e) => {
-        AppState.loadGraph(e.detail.exampleKey);
+    // Handle window resize
+    window.addEventListener('resize', () => {
+        renderer.resizeCanvas();
+        renderer.initializePositions(AppState.graphData.nodes);
+        renderer.render(AppState);
     });
 
-    console.log('Initialization complete!');
-}
+    // Handle canvas clicks (toggle nodes)
+    canvas.addEventListener('click', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        const node = renderer.getNodeAtPosition(x, y);
+        if (node) {
+            AppState.toggleNode(node);
+            renderer.render(AppState);
+        }
+    });
+
+    // Handle start node input
+    const startInput = document.getElementById('start-node');
+    startInput.addEventListener('input', (e) => {
+        AppState.startNode = e.target.value.toUpperCase() || null;
+        renderer.render(AppState);
+    });
+
+    // Handle end node input
+    const endInput = document.getElementById('end-node');
+    endInput.addEventListener('input', (e) => {
+        AppState.endNode = e.target.value.toUpperCase() || null;
+        renderer.render(AppState);
+    });
+
+    // Handle solve button
+    const solveButton = document.getElementById('solve-button');
+    solveButton.addEventListener('click', () => {
+        const paths = AppState.solve();
+        console.log('Found paths:', paths);
+        // TODO: Visualize paths on canvas
+    });
+
+    // Handle condition toggles
+    document.querySelectorAll('.condition-btn').forEach(btn => {
+        const condition = btn.textContent.trim();
+
+        btn.addEventListener('click', () => {
+            btn.classList.toggle('active');
+            AppState.toggleCondition(condition);
+            renderer.render(AppState);
+        });
+    });
+
+    console.log('AeroCalc initialized!');
+    console.log('Graph:', AppState.graph);
+});
