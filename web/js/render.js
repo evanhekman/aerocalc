@@ -39,15 +39,9 @@ class GraphRenderer {
   drawEdges(state) {
     // Collect edges that are actively used for computation
     const activeEdges = new Set();
-    const alternativeEdges = new Set();
 
     for (const [node, computation] of state.computedValues) {
       activeEdges.add(computation.edge);
-      for (const alt of computation.alternatives) {
-        if (alt.edge !== computation.edge) {
-          alternativeEdges.add(alt.edge);
-        }
-      }
     }
 
     // Collect edges that are part of solution paths
@@ -79,27 +73,21 @@ class GraphRenderer {
         const edgeKey2 = `${edge.to}-${edge.from}`;
         const isPathEdge = pathEdgeKeys.has(edgeKey1) || pathEdgeKeys.has(edgeKey2);
         const isActive = activeEdges.has(edgeObj);
-        const isAlternative = alternativeEdges.has(edgeObj);
 
         this.ctx.beginPath();
         this.ctx.moveTo(from.x, from.y);
         this.ctx.lineTo(to.x, to.y);
 
         if (isPathEdge) {
-          // Path edge: very bright solid green (highest priority)
+          // Solution path (start->end): bright green
           this.ctx.strokeStyle = "#0f0";
           this.ctx.lineWidth = 4;
           this.ctx.setLineDash([]);
         } else if (isActive) {
-          // Active computation edge: bright solid green
-          this.ctx.strokeStyle = "#0f0";
+          // Computation edge (known->discovered): very light green
+          this.ctx.strokeStyle = "rgba(0, 255, 0, 0.2)";
           this.ctx.lineWidth = 3;
           this.ctx.setLineDash([]);
-        } else if (isAlternative) {
-          // Alternative computation edge: dimmed dashed green
-          this.ctx.strokeStyle = "rgba(0, 255, 0, 0.3)";
-          this.ctx.lineWidth = 2;
-          this.ctx.setLineDash([5, 5]);
         } else {
           // Unused edge: gray
           this.ctx.strokeStyle = "#1a1a1a";
