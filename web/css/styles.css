@@ -91,6 +91,10 @@ label {
     text-transform: uppercase;
 }
 
+label.green-label {
+    color: #0a0;
+}
+
 /* Inputs */
 input[type="text"] {
     width: 100%;

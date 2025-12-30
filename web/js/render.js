@@ -95,6 +95,20 @@ class GraphRenderer {
             this.ctx.fillStyle = '#000';
             this.ctx.fill();
 
+            // Faint inner fill for known nodes
+            if (isKnown) {
+                this.ctx.beginPath();
+                this.ctx.arc(pos.x, pos.y, 25, 0, 2 * Math.PI);
+                if (isStart) {
+                    this.ctx.fillStyle = 'rgba(0, 191, 255, 0.1)'; // Faint cyan
+                } else if (isEnd) {
+                    this.ctx.fillStyle = 'rgba(255, 127, 80, 0.1)'; // Faint coral
+                } else {
+                    this.ctx.fillStyle = 'rgba(0, 255, 0, 0.1)'; // Faint green
+                }
+                this.ctx.fill();
+            }
+
             // Outline
             if (isStart) {
                 this.ctx.strokeStyle = '#00bfff'; // Cyan
