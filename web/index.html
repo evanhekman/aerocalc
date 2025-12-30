@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AeroCalc</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Main visualization area -->
+        <div id="graph-container">
+            <canvas id="graph-canvas"></canvas>
+            <div id="node-inputs"></div>
+        </div>
+
+        <!-- Sidebar -->
+        <aside id="sidebar">
+            <!-- Path finding -->
+            <div class="control-group">
+                <label>STARTING NODE</label>
+                <input type="text" id="start-node" placeholder="P">
+
+                <label>ENDING NODE</label>
+                <input type="text" id="end-node" placeholder="U">
+
+                <button id="solve-button">SOLVE</button>
+            </div>
+
+            <!-- Conditions -->
+            <div class="control-group">
+                <label>CONDITIONS</label>
+                <div id="conditions-list">
+                    <button class="condition-btn active">cond1</button>
+                    <button class="condition-btn active">cond2</button>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <script>
+        // Graph data (contrived example)
+        const graphData = {
+            nodes: ['A', 'B', 'C', 'D', 'E'],
+            edges: [
+                { from: 'A', to: 'B' },
+                { from: 'A', to: 'C' },
+                { from: 'A', to: 'D' },
+                { from: 'B', to: 'C' },
+                { from: 'B', to: 'D' },
+                { from: 'B', to: 'E' },
+                { from: 'C', to: 'E' },
+                { from: 'D', to: 'E' }
+            ],
+            conditions: ['cond1', 'cond2']
+        };
+
+        // State
+        const state = {
+            knownNodes: new Set(),
+            nodeValues: {},
+            startNode: null,
+            endNode: null,
+            nodePositions: {}
+        };
+
+        // Canvas setup
+        const canvas = document.getElementById('graph-canvas');
+        const ctx = canvas.getContext('2d');
+        const inputsContainer = document.getElementById('node-inputs');
+
+        function resizeCanvas() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+            initializeNodePositions();
+            render();
+        }
+
+        // Initialize node positions in a circle
+        function initializeNodePositions() {
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = Math.min(canvas.width, canvas.height) / 3;
+            const angleStep = (2 * Math.PI) / graphData.nodes.length;
+
+            graphData.nodes.forEach((node, i) => {
+                const angle = i * angleStep - Math.PI / 2;
+                state.nodePositions[node] = {
+                    x: centerX + radius * Math.cos(angle),
+                    y: centerY + radius * Math.sin(angle)
+                };
+            });
+        }
+
+        // Render the graph
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw edges
+            ctx.strokeStyle = '#1a1a1a';
+            ctx.lineWidth = 2;
+            graphData.edges.forEach(edge => {
+                const from = state.nodePositions[edge.from];
+                const to = state.nodePositions[edge.to];
+                ctx.beginPath();
+                ctx.moveTo(from.x, from.y);
+                ctx.lineTo(to.x, to.y);
+                ctx.stroke();
+            });
+
+            // Draw nodes
+            graphData.nodes.forEach(node => {
+                const pos = state.nodePositions[node];
+                const isKnown = state.knownNodes.has(node);
+                const isStart = state.startNode === node;
+                const isEnd = state.endNode === node;
+
+                // Node circle
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, 25, 0, 2 * Math.PI);
+
+                // Fill
+                ctx.fillStyle = isKnown ? '#0f0' : '#1a1a1a';
+                ctx.fill();
+
+                // Outline
+                if (isStart) {
+                    ctx.strokeStyle = '#00bfff'; // Blue
+                    ctx.lineWidth = 3;
+                } else if (isEnd) {
+                    ctx.strokeStyle = '#ffd700'; // Yellow
+                    ctx.lineWidth = 3;
+                } else {
+                    ctx.strokeStyle = isKnown ? '#0f0' : '#333';
+                    ctx.lineWidth = 2;
+                }
+                ctx.stroke();
+
+                // Node label
+                ctx.fillStyle = isKnown ? '#000' : '#666';
+                ctx.font = 'bold 16px Courier New';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(node, pos.x, pos.y);
+            });
+
+            updateInputBoxes();
+        }
+
+        // Update input boxes for known nodes
+        function updateInputBoxes() {
+            inputsContainer.innerHTML = '';
+
+            state.knownNodes.forEach(node => {
+                const pos = state.nodePositions[node];
+                const inputDiv = document.createElement('div');
+                inputDiv.className = 'node-input';
+                inputDiv.style.left = (pos.x + 35) + 'px';
+                inputDiv.style.top = (pos.y - 10) + 'px';
+
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.placeholder = '0';
+                input.value = state.nodeValues[node] || '';
+                input.addEventListener('input', (e) => {
+                    state.nodeValues[node] = e.target.value;
+                });
+
+                inputDiv.appendChild(input);
+                inputsContainer.appendChild(inputDiv);
+            });
+        }
+
+        // Handle canvas clicks
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            // Check if click is on a node
+            for (const node of graphData.nodes) {
+                const pos = state.nodePositions[node];
+                const dist = Math.sqrt((x - pos.x) ** 2 + (y - pos.y) ** 2);
+
+                if (dist <= 25) {
+                    // Toggle known state
+                    if (state.knownNodes.has(node)) {
+                        state.knownNodes.delete(node);
+                        delete state.nodeValues[node];
+                    } else {
+                        state.knownNodes.add(node);
+                    }
+                    render();
+                    break;
+                }
+            }
+        });
+
+        // Update start/end node highlighting from inputs
+        const startInput = document.getElementById('start-node');
+        const endInput = document.getElementById('end-node');
+
+        startInput.addEventListener('input', (e) => {
+            state.startNode = e.target.value.toUpperCase() || null;
+            render();
+        });
+
+        endInput.addEventListener('input', (e) => {
+            state.endNode = e.target.value.toUpperCase() || null;
+            render();
+        });
+
+        // Toggle condition buttons
+        document.querySelectorAll('.condition-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                btn.classList.toggle('active');
+            });
+        });
+
+        // Initialize
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+    </script>
+</body>
+</html>
