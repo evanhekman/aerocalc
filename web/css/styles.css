@@ -30,6 +30,9 @@ body {
     width: 100%;
     height: 100%;
     display: block;
+    font-smooth: always;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 #node-inputs {

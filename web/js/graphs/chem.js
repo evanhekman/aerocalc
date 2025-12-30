@@ -109,9 +109,8 @@ function loadChem() {
             V: ['m³', 'L', 'mL', 'cm³'],
             n: ['mol', 'mmol', 'kmol'],
             R: ['J/(mol·K)', 'L·atm/(mol·K)', 'cal/(mol·K)'],
-            T: ['K', '°C'],
-            U: ['J', 'kJ', 'cal', 'kcal'],
-            f: ['3', '5', '6', '7']
+            T: ['K', '°C', '°F'],
+            U: ['J', 'kJ', 'cal', 'kcal']
         },
         standardUnits: {
             P: 'Pa',
@@ -119,8 +118,7 @@ function loadChem() {
             n: 'mol',
             R: 'J/(mol·K)',
             T: 'K',
-            U: 'J',
-            f: '3'
+            U: 'J'
         }
     };
 }

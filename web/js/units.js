@@ -22,8 +22,9 @@ const CONVERSIONS = {
         'kmol': 1000
     },
     T: {
-        'K': { offset: 0, scale: 1 },
-        '°C': { offset: 273.15, scale: 1 }
+        'K': { type: 'kelvin' },
+        '°C': { type: 'celsius' },
+        '°F': { type: 'fahrenheit' }
     },
     R: {
         'J/(mol·K)': 8.314,
@@ -50,9 +51,11 @@ function toStandardUnit(value, node, unit) {
 
     const conversion = CONVERSIONS[node][unit];
 
-    if (typeof conversion === 'object' && 'offset' in conversion) {
-        // Temperature conversion
-        return value + conversion.offset;
+    // Temperature conversion (to Kelvin)
+    if (typeof conversion === 'object' && 'type' in conversion) {
+        if (conversion.type === 'kelvin') return value;
+        if (conversion.type === 'celsius') return value + 273.15;
+        if (conversion.type === 'fahrenheit') return (value - 32) * 5/9 + 273.15;
     } else if (typeof conversion === 'number') {
         // Simple multiplication
         return value * conversion;
@@ -67,9 +70,11 @@ function fromStandardUnit(value, node, unit) {
 
     const conversion = CONVERSIONS[node][unit];
 
-    if (typeof conversion === 'object' && 'offset' in conversion) {
-        // Temperature conversion
-        return value - conversion.offset;
+    // Temperature conversion (from Kelvin)
+    if (typeof conversion === 'object' && 'type' in conversion) {
+        if (conversion.type === 'kelvin') return value;
+        if (conversion.type === 'celsius') return value - 273.15;
+        if (conversion.type === 'fahrenheit') return (value - 273.15) * 9/5 + 32;
     } else if (typeof conversion === 'number') {
         // Simple division
         return value / conversion;

@@ -10,14 +10,27 @@ class GraphRenderer {
 
   resizeCanvas() {
     const rect = this.canvas.parentElement.getBoundingClientRect();
-    this.canvas.width = rect.width;
-    this.canvas.height = rect.height;
+    const dpr = window.devicePixelRatio || 1;
+
+    // Set actual canvas size (scaled for high DPI)
+    this.canvas.width = rect.width * dpr;
+    this.canvas.height = rect.height * dpr;
+
+    // Set display size (CSS pixels)
+    this.canvas.style.width = rect.width + 'px';
+    this.canvas.style.height = rect.height + 'px';
+
+    // Scale context to match DPI
+    this.ctx.scale(dpr, dpr);
   }
 
   initializePositions(nodes) {
-    const centerX = this.canvas.width / 2;
-    const centerY = this.canvas.height / 2;
-    const radius = Math.min(this.canvas.width, this.canvas.height) / 2.5;
+    // Use CSS pixel dimensions (not physical pixels)
+    const width = this.canvas.offsetWidth;
+    const height = this.canvas.offsetHeight;
+    const centerX = width / 2;
+    const centerY = height / 2;
+    const radius = Math.min(width, height) / 2.5;
     const angleStep = (2 * Math.PI) / nodes.length;
 
     nodes.forEach((node, i) => {
@@ -30,7 +43,8 @@ class GraphRenderer {
   }
 
   render(state) {
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    // Clear using CSS pixel dimensions
+    this.ctx.clearRect(0, 0, this.canvas.offsetWidth, this.canvas.offsetHeight);
     this.drawEdges(state);
     this.drawNodes(state);
     this.updateInputBoxes(state);
@@ -41,7 +55,9 @@ class GraphRenderer {
     const activeEdges = new Set();
 
     for (const [node, computation] of state.computedValues) {
-      activeEdges.add(computation.edge);
+      if (computation.edge) {  // Skip null edges (e.g., R)
+        activeEdges.add(computation.edge);
+      }
     }
 
     // Collect edges that are part of solution paths
@@ -165,9 +181,14 @@ class GraphRenderer {
         this.ctx.fillStyle = "#666";
       }
 
-      this.ctx.font = '16px "Courier New", monospace';
+      this.ctx.font = '16px "Courier New", "Courier", monospace';
       this.ctx.textAlign = "center";
       this.ctx.textBaseline = "middle";
+
+      // Enable font smoothing for crisp text
+      this.ctx.imageSmoothingEnabled = true;
+      this.ctx.imageSmoothingQuality = 'high';
+
       this.ctx.fillText(node, pos.x, pos.y);
     });
   }
@@ -307,6 +328,14 @@ class GraphRenderer {
           const isActive = unit === currentUnit;
           if (isActive) {
             segment.classList.add("active");
+            // Color based on start/end node
+            if (isStart) {
+              segment.style.backgroundColor = "#00bfff";
+              segment.style.borderColor = "#00bfff";
+            } else if (isEnd) {
+              segment.style.backgroundColor = "#ff7f50";
+              segment.style.borderColor = "#ff7f50";
+            }
           }
 
           segment.addEventListener("click", () => {
