@@ -108,6 +108,42 @@ input[type="text"]:focus {
     border-color: #0f0;
 }
 
+/* Start node styling */
+#start-node {
+    color: #00bfff;
+    border-color: #00bfff;
+}
+
+#start-node:focus {
+    border-color: #00bfff;
+}
+
+#start-node::placeholder {
+    color: rgba(0, 191, 255, 0.4);
+}
+
+label[for="start-node"] {
+    color: #00bfff;
+}
+
+/* End node styling */
+#end-node {
+    color: #ff7f50;
+    border-color: #ff7f50;
+}
+
+#end-node:focus {
+    border-color: #ff7f50;
+}
+
+#end-node::placeholder {
+    color: rgba(255, 127, 80, 0.4);
+}
+
+label[for="end-node"] {
+    color: #ff7f50;
+}
+
 input[type="text"]::placeholder {
     color: #333;
 }
