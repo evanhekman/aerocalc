@@ -140,11 +140,11 @@ class GraphRenderer {
         this.ctx.beginPath();
         this.ctx.arc(pos.x, pos.y, 25, 0, 2 * Math.PI);
         if (isStart) {
-          this.ctx.fillStyle = "rgba(0, 191, 255, 0.15)"; // Faint cyan
+          this.ctx.fillStyle = "rgba(0, 191, 255, 0.25)"; // Faint cyan
         } else if (isEnd) {
-          this.ctx.fillStyle = "rgba(255, 127, 80, 0.15)"; // Faint coral
+          this.ctx.fillStyle = "rgba(255, 127, 80, 0.25)"; // Faint coral
         } else {
-          this.ctx.fillStyle = "rgba(0, 255, 0, 0.15)";
+          this.ctx.fillStyle = "rgba(0, 255, 0, 0.25)";
         }
         this.ctx.fill();
       }
@@ -330,11 +330,13 @@ class GraphRenderer {
             segment.classList.add("active");
             // Color based on start/end node
             if (isStart) {
-              segment.style.backgroundColor = "#00bfff";
+              segment.style.backgroundColor = "rgba(0, 191, 255, 0.25)";
               segment.style.borderColor = "#00bfff";
+              segment.style.color = "#00bfff";
             } else if (isEnd) {
-              segment.style.backgroundColor = "#ff7f50";
+              segment.style.backgroundColor = "rgba(255, 127, 80, 0.25)";
               segment.style.borderColor = "#ff7f50";
+              segment.style.color = "#ff7f50";
             }
           }
 
