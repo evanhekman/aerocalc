@@ -141,18 +141,31 @@ const AppState = {
 
                 // If we found ways to compute this node
                 if (computationOptions.length > 0) {
+                    // Filter to unique values (within tolerance)
+                    const uniqueOptions = [];
+                    const tolerance = 1e-6;
+
+                    for (const opt of computationOptions) {
+                        const isDuplicate = uniqueOptions.some(
+                            existing => Math.abs(existing.value - opt.value) < tolerance
+                        );
+                        if (!isDuplicate) {
+                            uniqueOptions.push(opt);
+                        }
+                    }
+
                     // Use active edge if set, otherwise use first
-                    let activeOption = computationOptions[0];
+                    let activeOption = uniqueOptions[0];
                     if (this.activeEdges.has(nodeName)) {
                         const activeEdge = this.activeEdges.get(nodeName);
-                        const found = computationOptions.find(opt => opt.edge === activeEdge);
+                        const found = uniqueOptions.find(opt => opt.edge === activeEdge);
                         if (found) activeOption = found;
                     }
 
                     this.computedValues.set(nodeName, {
                         value: activeOption.value,
                         edge: activeOption.edge,
-                        alternatives: computationOptions
+                        alternatives: uniqueOptions
                     });
 
                     values[nodeName] = activeOption.value;
