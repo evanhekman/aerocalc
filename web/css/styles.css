@@ -1,5 +1,18 @@
 /* AeroCalc - Minimalist Dark Theme */
 
+/* Color scheme - declared once for easy modification */
+/* Ordered from darkest to lightest (darker = less obvious on black background) */
+:root {
+    --color-background: #000;
+    --color-background-alt: #0a0a0a;
+
+    --color-default: #444;           /* Empty nodes, inactive elements */
+    --color-weak-outline: #888;      /* Known nodes (secondary/user input) */
+    --color-weak-fill: #444;         /* Discovered nodes fill (half as bright) */
+    --color-strong-outline: #ddd;    /* Discovered nodes (primary/computed) */
+    --color-strong-fill: #ddd;       /* Reserved for future use */
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -8,7 +21,7 @@
 
 body {
     font-family: "Courier New", monospace;
-    background: #000;
+    background: var(--color-background);
     color: #fff;
     overflow: hidden;
 }
@@ -23,7 +36,7 @@ body {
 #graph-container {
     flex: 1;
     position: relative;
-    background: #000;
+    background: var(--color-background);
 }
 
 #graph-canvas {
@@ -57,9 +70,9 @@ body {
 .node-input input {
     width: 150px;
     padding: 4px 6px;
-    background: #000;
-    border: 1px solid #0f0;
-    color: #0f0;
+    background: var(--color-background);
+    border: 1px solid var(--color-weak-outline);
+    color: var(--color-weak-outline);
     font-family: "Courier New", monospace;
     font-size: 0.8em;
     text-align: center;
@@ -68,8 +81,8 @@ body {
 
 .node-input input:focus {
     outline: none;
-    border-color: #0f0;
-    box-shadow: 0 0 5px rgba(0, 255, 0, 0.3);
+    border-color: var(--color-weak-outline);
+    box-shadow: 0 0 5px rgba(136, 136, 136, 0.3);
 }
 
 /* Horizontal unit segment bar */
@@ -87,9 +100,9 @@ body {
     flex-shrink: 1;
     flex-basis: 0%;
     padding: 3px 4px;
-    background: #000;
-    border: 1px solid #333;
-    color: #666;
+    background: var(--color-background);
+    border: 1px solid var(--color-default);
+    color: var(--color-default);
     font-family: "Courier New", monospace;
     font-size: 0.7em;
     cursor: pointer;
@@ -101,23 +114,23 @@ body {
 }
 
 .unit-segment:hover {
-    border-color: #666;
-    color: #999;
+    border-color: var(--color-weak-outline);
+    color: var(--color-weak-outline);
 }
 
 .unit-segment.active {
-    background: rgba(0, 255, 0, 0.25);
-    border-color: #0f0;
-    color: #0f0;
+    background: transparent;
+    border-color: var(--color-weak-outline);
+    color: var(--color-weak-outline);
 }
 
 /* Sidebar */
 #sidebar {
     width: 320px;
-    background: #0a0a0a;
+    background: var(--color-background-alt);
     padding: 32px;
     overflow-y: auto;
-    border-left: 1px solid #1a1a1a;
+    border-left: 1px solid var(--color-default);
     display: flex;
     flex-direction: column;
     gap: 40px;
@@ -132,7 +145,7 @@ body {
 
 /* Labels */
 label {
-    color: #666;
+    color: var(--color-default);
     font-size: 0.75em;
     letter-spacing: 2px;
     font-weight: bold;
@@ -140,16 +153,16 @@ label {
 }
 
 label.green-label {
-    color: #0a0;
+    color: var(--color-weak-outline);
 }
 
 /* Inputs */
 input[type="text"] {
     width: 100%;
     padding: 12px;
-    background: #000;
-    border: 1px solid #1a1a1a;
-    color: #0f0;
+    background: var(--color-background);
+    border: 1px solid var(--color-default);
+    color: var(--color-weak-outline);
     font-family: "Courier New", monospace;
     font-size: 1em;
     transition: border-color 0.2s;
@@ -157,52 +170,16 @@ input[type="text"] {
 
 input[type="text"]:focus {
     outline: none;
-    border-color: #0f0;
-}
-
-/* Start node styling */
-#start-node {
-    color: #00bfff;
-    border-color: #00bfff;
-}
-
-#start-node:focus {
-    border-color: #00bfff;
-}
-
-#start-node::placeholder {
-    color: rgba(0, 191, 255, 0.4);
-}
-
-label[for="start-node"] {
-    color: #00bfff;
-}
-
-/* End node styling */
-#end-node {
-    color: #ff7f50;
-    border-color: #ff7f50;
-}
-
-#end-node:focus {
-    border-color: #ff7f50;
-}
-
-#end-node::placeholder {
-    color: rgba(255, 127, 80, 0.4);
-}
-
-label[for="end-node"] {
-    color: #ff7f50;
+    border-color: var(--color-weak-outline);
 }
 
 input[type="text"]::placeholder {
-    color: #333;
+    color: var(--color-default);
 }
 
 /* Hints */
 .hint {
-    color: #666;
+    color: var(--color-default);
     font-size: 0.85em;
     font-style: italic;
 }
@@ -217,8 +194,8 @@ input[type="text"]::placeholder {
 .condition-btn {
     padding: 10px 14px;
     background: transparent;
-    border: 1px solid #1a1a1a;
-    color: #666;
+    border: 1px solid var(--color-default);
+    color: var(--color-default);
     font-family: "Courier New", monospace;
     font-size: 0.85em;
     text-align: left;
@@ -227,17 +204,17 @@ input[type="text"]::placeholder {
 }
 
 .condition-btn:hover {
-    border-color: #333;
-    color: #999;
+    border-color: var(--color-weak-outline);
+    color: var(--color-weak-outline);
 }
 
 .condition-btn.active {
-    border-color: #0f0;
-    color: #0f0;
+    border-color: var(--color-weak-outline);
+    color: var(--color-weak-outline);
 }
 
 .condition-btn:focus {
-    outline: 2px solid #666;
+    outline: 2px solid var(--color-default);
     outline-offset: 2px;
 }
 
@@ -247,15 +224,15 @@ input[type="text"]::placeholder {
 }
 
 ::-webkit-scrollbar-track {
-    background: #0a0a0a;
+    background: var(--color-background-alt);
 }
 
 ::-webkit-scrollbar-thumb {
-    background: #1a1a1a;
+    background: var(--color-default);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: #2a2a2a;
+    background: var(--color-weak-outline);
 }
 
 /* Responsive */
@@ -268,7 +245,7 @@ input[type="text"]::placeholder {
         width: 100%;
         max-height: 40vh;
         border-left: none;
-        border-top: 1px solid #1a1a1a;
+        border-top: 1px solid var(--color-default);
     }
 
     #graph-container {

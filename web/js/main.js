@@ -34,9 +34,6 @@ const AppState = {
     activeEdges: new Map(), // node -> edge currently used for computation
     activeConditions: new Set(),
     selectedUnits: new Map(), // node -> selected unit
-    startNode: null,
-    endNode: null,
-    paths: [],
 
     init(graphName) {
         this.graphData = loadGraphData(graphName);
@@ -68,13 +65,11 @@ const AppState = {
             this.knownValues.set(node, value);
         }
         this.computeAll();
-        this.solvePaths();
     },
 
     setActiveEdge(node, edge) {
         this.activeEdges.set(node, edge);
         this.computeAll();
-        this.solvePaths();
     },
 
     setSelectedUnit(node, unit) {
@@ -88,7 +83,6 @@ const AppState = {
 
         this.selectedUnits.set(node, unit);
         this.computeAll();
-        this.solvePaths();
     },
 
     computeAll() {
@@ -239,29 +233,6 @@ const AppState = {
         }
 
         this.computeAll();
-        this.solvePaths();
-    },
-
-    solvePaths() {
-        this.paths = [];
-
-        if (!this.startNode || !this.endNode) {
-            return;
-        }
-
-        // Get all known nodes (user-entered + computed)
-        const knownNodes = new Set([...this.knownValues.keys(), ...this.computedValues.keys()]);
-
-        if (!knownNodes.has(this.startNode)) {
-            return;
-        }
-
-        try {
-            this.paths = this.graph.solveAll(knownNodes, this.startNode, this.endNode);
-        } catch (error) {
-            // Path not found or error
-            this.paths = [];
-        }
     }
 };
 
@@ -324,23 +295,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderer.render(AppState);
     });
 
-    // Handle start/end node inputs
-    const startInput = document.getElementById('start-node');
-    const endInput = document.getElementById('end-node');
-
-    startInput.addEventListener('input', (e) => {
-        AppState.startNode = e.target.value.toUpperCase() || null;
-        AppState.solvePaths();
-        renderer.render(AppState);
-    });
-
-    endInput.addEventListener('input', (e) => {
-        AppState.endNode = e.target.value.toUpperCase() || null;
-        AppState.solvePaths();
-        renderer.render(AppState);
-    });
-
-    // Condition toggles are now dynamically created above
+    // Condition toggles are dynamically created above
 
     // Get all focusable elements in sidebar
     function getFocusableElements() {
@@ -352,20 +307,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
         const isMeta = e.metaKey || e.ctrlKey;
-
-        // Meta-Z: Focus starting node
-        if (isMeta && e.key === 'z') {
-            e.preventDefault();
-            startInput.focus();
-            startInput.select();
-        }
-
-        // Meta-X: Focus ending node
-        if (isMeta && e.key === 'x') {
-            e.preventDefault();
-            endInput.focus();
-            endInput.select();
-        }
 
         // Meta-C: Focus first condition button
         if (isMeta && e.key === 'c') {
@@ -418,8 +359,6 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('  ?graph=edgecase - Multiple minimal paths');
     console.log('');
     console.log('Keyboard shortcuts:');
-    console.log('  Meta-Z: Focus starting node');
-    console.log('  Meta-X: Focus ending node');
     console.log('  Meta-C: Focus conditions');
     console.log('  Space: Toggle condition (when focused)');
     console.log('  Up/Down Arrows: Navigate sidebar elements');
