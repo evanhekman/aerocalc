@@ -356,7 +356,7 @@ class GraphRenderer {
         // R is special: always show value, known styling with fill to show read-only
         input.value = computation ? computation.value.toFixed(4) : "";
         input.placeholder = "";
-        input.style.color = COLORS.weakOutline;
+        input.style.color = COLORS.strongOutline;
         input.style.borderColor = COLORS.weakOutline;
         input.style.backgroundColor = COLORS.weakFill;
         input.readOnly = true;
@@ -364,7 +364,7 @@ class GraphRenderer {
       } else if (isKnown) {
         input.value = state.knownValues.get(node);
         input.placeholder = "";
-        input.style.color = COLORS.weakOutline;
+        input.style.color = COLORS.strongOutline;
         input.style.borderColor = COLORS.weakOutline;
       } else if (computation) {
         input.value = computation.value.toFixed(2);
@@ -374,7 +374,7 @@ class GraphRenderer {
       } else {
         input.value = "";
         input.placeholder = "-";
-        input.style.color = COLORS.default;
+        input.style.color = COLORS.strongOutline;
         input.style.borderColor = COLORS.default;
       }
 

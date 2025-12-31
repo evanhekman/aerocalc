@@ -75,6 +75,7 @@ body {
     color: var(--color-weak-outline);
     font-family: "Courier New", monospace;
     font-size: 0.8em;
+    font-weight: bold;
     text-align: center;
     box-sizing: border-box;
 }
