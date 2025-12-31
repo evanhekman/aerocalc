@@ -119,7 +119,7 @@ body {
 }
 
 .unit-segment.active {
-    background: transparent;
+    background: var(--color-background);
     border-color: var(--color-weak-outline);
     color: var(--color-weak-outline);
 }

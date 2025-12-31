@@ -284,8 +284,11 @@ class GraphRenderer {
       focusedElement && focusedElement.classList.contains("node-value-input")
         ? focusedElement.dataset.node
         : null;
-    const cursorPosition = focusedElement
+    const cursorStart = focusedElement
       ? focusedElement.selectionStart
+      : null;
+    const cursorEnd = focusedElement
+      ? focusedElement.selectionEnd
       : null;
 
     this.inputsContainer.innerHTML = "";
@@ -439,8 +442,9 @@ class GraphRenderer {
       );
       if (inputToFocus) {
         inputToFocus.focus();
-        if (cursorPosition !== null) {
-          inputToFocus.setSelectionRange(cursorPosition, cursorPosition);
+        // Only restore cursor/selection if we have valid saved positions
+        if (cursorStart !== null && cursorEnd !== null) {
+          inputToFocus.setSelectionRange(cursorStart, cursorEnd);
         }
       }
     }
