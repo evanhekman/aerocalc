@@ -1,15 +1,58 @@
 // Canvas rendering logic
 
-// Color scheme - declared once for easy modification
-// Ordered from darkest to lightest (darker = less obvious on black background)
-const COLORS = {
-  background: "#000",
-  default: "#444",           // Empty nodes, non-calculation edges
-  weakOutline: "#888",       // Known nodes outline, discovery arrows
-  weakFill: "#444",          // Discovered nodes fill (half as bright)
-  strongOutline: "#ddd",     // Discovered nodes outline
-  strongFill: "#ddd"         // Reserved for future use (same as strongOutline)
+// Theme definitions - multiple color schemes
+// Colors maintain consistent saturation across brightness levels
+const THEMES = {
+  gray: {
+    default: "#333",
+    weakOutline: "#666",
+    strongOutline: "#888",
+    weakFill: "#333"
+  },
+  green: {
+    default: "#0d330d",
+    weakOutline: "#2a8a2a",
+    strongOutline: "#47cc47",
+    weakFill: "#0d330d"
+  },
+  cyan: {
+    default: "#0d3333",
+    weakOutline: "#2a8a8a",
+    strongOutline: "#47cccc",
+    weakFill: "#0d3333"
+  },
+  orange: {
+    default: "#3d2610",
+    weakOutline: "#8a5a1f",
+    strongOutline: "#d98a33",
+    weakFill: "#3d2610"
+  },
+  magenta: {
+    default: "#330d33",
+    weakOutline: "#8a2a8a",
+    strongOutline: "#cc47cc",
+    weakFill: "#330d33"
+  }
 };
+
+// Active color scheme - can be swapped at runtime
+let COLORS = {
+  background: "#000",
+  ...THEMES.gray
+};
+
+// Function to switch themes
+function setTheme(themeName) {
+  if (THEMES[themeName]) {
+    Object.assign(COLORS, THEMES[themeName]);
+
+    // Update CSS variables
+    document.documentElement.style.setProperty('--color-default', THEMES[themeName].default);
+    document.documentElement.style.setProperty('--color-weak-outline', THEMES[themeName].weakOutline);
+    document.documentElement.style.setProperty('--color-strong-outline', THEMES[themeName].strongOutline);
+    document.documentElement.style.setProperty('--color-weak-fill', THEMES[themeName].weakFill);
+  }
+}
 
 class GraphRenderer {
   constructor(canvas, inputsContainer) {

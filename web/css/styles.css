@@ -184,6 +184,85 @@ input[type="text"]::placeholder {
     font-style: italic;
 }
 
+/* Theme Selector */
+.theme-selector {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.theme-selector:not(:hover) .theme-option:not(.active) {
+    display: none;
+}
+
+.theme-option {
+    padding: 8px 12px;
+    background: var(--color-background);
+    border: 1px solid var(--color-default);
+    color: var(--color-default);
+    font-family: "Courier New", monospace;
+    font-size: 0.85em;
+    cursor: pointer;
+    transition: all 0.1s;
+    text-transform: uppercase;
+}
+
+.theme-option:hover {
+    border-color: var(--color-weak-outline);
+    color: var(--color-weak-outline);
+}
+
+.theme-option.active {
+    border-color: var(--color-weak-outline);
+    color: var(--color-weak-outline);
+}
+
+.theme-option[data-theme="gray"].active {
+    border-color: #666;
+    color: #666;
+}
+
+.theme-option[data-theme="green"].active {
+    border-color: #2a8a2a;
+    color: #2a8a2a;
+}
+
+.theme-option[data-theme="green"]:hover {
+    border-color: #2a8a2a;
+    color: #2a8a2a;
+}
+
+.theme-option[data-theme="cyan"].active {
+    border-color: #2a8a8a;
+    color: #2a8a8a;
+}
+
+.theme-option[data-theme="cyan"]:hover {
+    border-color: #2a8a8a;
+    color: #2a8a8a;
+}
+
+.theme-option[data-theme="orange"].active {
+    border-color: #8a5a1f;
+    color: #8a5a1f;
+}
+
+.theme-option[data-theme="orange"]:hover {
+    border-color: #8a5a1f;
+    color: #8a5a1f;
+}
+
+.theme-option[data-theme="magenta"].active {
+    border-color: #8a2a8a;
+    color: #8a2a8a;
+}
+
+.theme-option[data-theme="magenta"]:hover {
+    border-color: #8a2a8a;
+    color: #8a2a8a;
+}
+
 /* Conditions */
 #conditions-list {
     display: flex;

@@ -34,6 +34,7 @@ const AppState = {
     activeEdges: new Map(), // node -> edge currently used for computation
     activeConditions: new Set(),
     selectedUnits: new Map(), // node -> selected unit
+    currentTheme: 'gray', // Current color theme
 
     init(graphName) {
         this.graphData = loadGraphData(graphName);
@@ -233,6 +234,11 @@ const AppState = {
         }
 
         this.computeAll();
+    },
+
+    setTheme(themeName) {
+        this.currentTheme = themeName;
+        setTheme(themeName);
     }
 };
 
@@ -282,6 +288,50 @@ document.addEventListener('DOMContentLoaded', () => {
         conditionsLabel.classList.remove('green-label');
         conditionsList.innerHTML = '<p class="hint">No conditions for this graph</p>';
     }
+
+    // Setup theme selector
+    const themeSelector = document.getElementById('theme-selector');
+    const themes = ['gray', 'green', 'cyan', 'orange', 'magenta'];
+
+    themes.forEach(theme => {
+        const themeBtn = document.createElement('div');
+        themeBtn.className = 'theme-option';
+        themeBtn.textContent = theme;
+        themeBtn.dataset.theme = theme;
+
+        if (theme === AppState.currentTheme) {
+            themeBtn.classList.add('active');
+        }
+
+        // Preview theme on hover
+        themeBtn.addEventListener('mouseenter', () => {
+            setTheme(theme);
+            renderer.render(AppState);
+        });
+
+        // Restore original theme on mouse leave (if not committed)
+        themeBtn.addEventListener('mouseleave', () => {
+            if (AppState.currentTheme !== theme) {
+                setTheme(AppState.currentTheme);
+                renderer.render(AppState);
+            }
+        });
+
+        // Commit theme on click
+        themeBtn.addEventListener('click', () => {
+            // Update active state
+            themeSelector.querySelectorAll('.theme-option').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            themeBtn.classList.add('active');
+
+            // Set theme (commits the selection)
+            AppState.setTheme(theme);
+            renderer.render(AppState);
+        });
+
+        themeSelector.appendChild(themeBtn);
+    });
 
     // Initial render
     renderer.resizeCanvas();
