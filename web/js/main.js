@@ -138,7 +138,7 @@ const AppState = {
 
                     let canCompute = true;
                     for (const req of reqAll) {
-                        if (!values[req]) {
+                        if (values[req] === undefined || values[req] === null) {
                             canCompute = false;
                             break;
                         }
@@ -147,7 +147,7 @@ const AppState = {
                     if (reqOne.size > 0) {
                         let hasOne = false;
                         for (const req of reqOne) {
-                            if (values[req]) {
+                            if (values[req] !== undefined && values[req] !== null) {
                                 hasOne = true;
                                 break;
                             }

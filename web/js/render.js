@@ -262,16 +262,10 @@ class GraphRenderer {
       }
       this.ctx.stroke();
 
-      // Node label
-      if (isKnown || node === "R") {
-        this.ctx.fillStyle = COLORS.weakOutline;
-      } else if (isComputed) {
-        this.ctx.fillStyle = COLORS.strongOutline;
-      } else {
-        this.ctx.fillStyle = COLORS.default;
-      }
+      // Node label - always use strong outline for visibility
+      this.ctx.fillStyle = COLORS.strongOutline;
 
-      this.ctx.font = '16px "Courier New", "Courier", monospace';
+      this.ctx.font = 'bold 16px "Courier New", "Courier", monospace';
       this.ctx.textAlign = "center";
       this.ctx.textBaseline = "middle";
 
