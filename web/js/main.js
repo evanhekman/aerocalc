@@ -258,6 +258,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const inputsContainer = document.getElementById('node-inputs');
     const renderer = new GraphRenderer(canvas, inputsContainer);
 
+    // Setup re-render on zoom/pan
+    renderer.onTransformChange = () => {
+        renderer.render(AppState);
+    };
+
     // Update conditions UI dynamically
     const conditionsList = document.getElementById('conditions-list');
     const conditionsLabel = conditionsList.parentElement.querySelector('label');

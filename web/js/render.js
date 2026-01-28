@@ -60,6 +60,19 @@ class GraphRenderer {
     this.ctx = canvas.getContext("2d");
     this.inputsContainer = inputsContainer;
     this.nodePositions = new Map();
+
+    // Zoom/pan state
+    this.zoom = 1.0;
+    this.panX = 0;
+    this.panY = 0;
+    this.isDragging = false;
+    this.dragStartX = 0;
+    this.dragStartY = 0;
+    this.dragStartPanX = 0;
+    this.dragStartPanY = 0;
+
+    // Setup mouse event handlers
+    this.setupEventHandlers();
   }
 
   resizeCanvas() {
@@ -74,7 +87,7 @@ class GraphRenderer {
     this.canvas.style.width = rect.width + "px";
     this.canvas.style.height = rect.height + "px";
 
-    // Scale context to match DPI
+    // Scale context to match DPI (transformations will be reapplied in render)
     this.ctx.scale(dpr, dpr);
   }
 
@@ -97,10 +110,24 @@ class GraphRenderer {
   }
 
   render(state) {
-    // Clear using CSS pixel dimensions
+    // Save the context state
+    this.ctx.save();
+
+    // Clear using CSS pixel dimensions (before transform)
     this.ctx.clearRect(0, 0, this.canvas.offsetWidth, this.canvas.offsetHeight);
+
+    // Apply zoom and pan transformation
+    this.ctx.translate(this.panX, this.panY);
+    this.ctx.scale(this.zoom, this.zoom);
+
+    // Draw graph elements
     this.drawEdges(state);
     this.drawNodes(state);
+
+    // Restore context state
+    this.ctx.restore();
+
+    // Update input boxes (uses screen coordinates, not graph coordinates)
     this.updateInputBoxes(state);
   }
 
@@ -300,12 +327,18 @@ class GraphRenderer {
       const isKnown = state.knownValues.has(node);
       const computation = state.computedValues.get(node);
 
+      // Convert graph coordinates to screen coordinates
+      const screenX = pos.x * this.zoom + this.panX;
+      const screenY = pos.y * this.zoom + this.panY;
+
       const inputDiv = document.createElement("div");
       inputDiv.className = "node-input";
-      inputDiv.style.left = pos.x + 35 + "px";
-      inputDiv.style.top = pos.y - 22 + "px";
+      inputDiv.style.left = screenX + 35 * this.zoom + "px";
+      inputDiv.style.top = screenY - 22 * this.zoom + "px";
       inputDiv.style.flexDirection = "column";
       inputDiv.style.width = "150px";
+      inputDiv.style.transform = `scale(${this.zoom})`;
+      inputDiv.style.transformOrigin = "left top";
 
       // Create segmented bar (only for computed nodes with alternatives)
       if (computation && computation.alternatives.length > 1) {
@@ -451,12 +484,97 @@ class GraphRenderer {
   }
 
   getNodeAtPosition(x, y) {
+    // Convert screen coordinates to graph coordinates
+    const graphX = (x - this.panX) / this.zoom;
+    const graphY = (y - this.panY) / this.zoom;
+
     for (const [node, pos] of this.nodePositions) {
-      const dist = Math.sqrt((x - pos.x) ** 2 + (y - pos.y) ** 2);
+      const dist = Math.sqrt((graphX - pos.x) ** 2 + (graphY - pos.y) ** 2);
       if (dist <= 25) {
         return node;
       }
     }
     return null;
+  }
+
+  setupEventHandlers() {
+    // Mouse wheel zoom
+    this.canvas.addEventListener('wheel', (e) => {
+      e.preventDefault();
+
+      const rect = this.canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+
+      // Zoom towards mouse position
+      const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+      const newZoom = Math.max(0.1, Math.min(10, this.zoom * zoomFactor));
+
+      // Adjust pan to zoom towards mouse
+      const graphX = (mouseX - this.panX) / this.zoom;
+      const graphY = (mouseY - this.panY) / this.zoom;
+
+      this.zoom = newZoom;
+      this.panX = mouseX - graphX * this.zoom;
+      this.panY = mouseY - graphY * this.zoom;
+
+      // Trigger re-render
+      if (this.onTransformChange) {
+        this.onTransformChange();
+      }
+    }, { passive: false });
+
+    // Pan with mouse drag
+    this.canvas.addEventListener('mousedown', (e) => {
+      // Only start dragging on left click
+      if (e.button !== 0) return;
+
+      const rect = this.canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+
+      // Check if clicking on a node - if so, don't start pan
+      if (this.getNodeAtPosition(mouseX, mouseY)) {
+        return;
+      }
+
+      this.isDragging = true;
+      this.dragStartX = mouseX;
+      this.dragStartY = mouseY;
+      this.dragStartPanX = this.panX;
+      this.dragStartPanY = this.panY;
+
+      this.canvas.style.cursor = 'grabbing';
+    });
+
+    this.canvas.addEventListener('mousemove', (e) => {
+      if (!this.isDragging) return;
+
+      const rect = this.canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+
+      this.panX = this.dragStartPanX + (mouseX - this.dragStartX);
+      this.panY = this.dragStartPanY + (mouseY - this.dragStartY);
+
+      // Trigger re-render
+      if (this.onTransformChange) {
+        this.onTransformChange();
+      }
+    });
+
+    this.canvas.addEventListener('mouseup', () => {
+      if (this.isDragging) {
+        this.isDragging = false;
+        this.canvas.style.cursor = 'default';
+      }
+    });
+
+    this.canvas.addEventListener('mouseleave', () => {
+      if (this.isDragging) {
+        this.isDragging = false;
+        this.canvas.style.cursor = 'default';
+      }
+    });
   }
 }
